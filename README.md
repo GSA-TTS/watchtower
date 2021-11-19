@@ -17,8 +17,10 @@ provide any app in the `config.yaml`, then all deployed apps must match the allo
 list.
 
 ## Exported Application Metrics
+The following table includes all application-specific prometheus metrics that are exported
+
 | Metric | Type | Description |
-| --- | --- |
+| --- | --- | --- |
 | `watchtower_app_updates_failed_total` | Counter | Number of times the config refresh for V3Apps has failed for any reason |
 | `watchtower_app_updates_success_total` | Counter | Number of times the config refresh for V3Apps has succeeded |
 | `watchtower_route_updates_failed_total` | Counter | Number of times the config refresh for Routes has failed for any reason |
