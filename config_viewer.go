@@ -14,7 +14,7 @@ import (
 )
 
 // DefaultScrapeInterval is the default, recommended scrape interval for new ConfigViewer structs
-const DefaultScrapeInterval = time.Second * time.Duration(15)
+const DefaultScrapeInterval = time.Minute * time.Duration(5)
 
 // ConfigViewer is used to hold the most recent config data scraped from the CF API. ConfigViewer
 // structs will always show an unfiltered view of the contained resources. E.g. the v3Apps attribute
@@ -93,6 +93,7 @@ func (viewer *ConfigViewer) SharedDomains() []cfclient.SharedDomain {
 	return sharedDomainList
 }
 
+// RefreshInterval returns a time.Duration matching the viewers refresh interval
 func (viewer *ConfigViewer) RefreshInterval() time.Duration {
 	duration := viewer.refreshInterval
 	return duration
