@@ -2,6 +2,9 @@
 Watchtower is a drift-detection app for Cloud Foundry. It can be run anywhere
 that it will be able to reach the Cloud Controller API, meaning it doesn't
 have to run as a Cloud Foundry App, although that is the most likely use-case.
+Watchtower does what any real-life watchtower would do -- it observes an area
+(in this case, a Cloud Foundry environment) and if something happens that isn't
+supposed to, it will communicate that to the authorities (a Prometheus server).
 
 ## How it works
 Watchtower reads in a `config.yaml` file that contains an allowed list of Cloud
