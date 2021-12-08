@@ -2,3 +2,10 @@
 apps:
   - name: my-cool-app
   - name: another-app
+spaces:
+  - name: dev
+    allow_ssh: true
+  - name: test
+    allow_ssh: true
+  - name: prod
+    allow_ssh: false

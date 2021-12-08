@@ -18,7 +18,7 @@ func NewDetector() Detector {
 	if err != nil {
 		log.Fatalf("Detector failed to initialize ConfigViewer: %s", err)
 	}
-	resourceConfig := LoadResourceConfig()
+	resourceConfig := LoadResourceConfig(nil)
 	detector := Detector{viewer, resourceConfig}
 	go detector.start()
 	return detector
