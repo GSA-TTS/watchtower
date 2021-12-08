@@ -7,19 +7,30 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ResourceConfig is the desired resource configuration to monitor with Watchtower
-type ResourceConfig struct {
-	Apps   []AppConfig   `yaml:"apps"`
-	Spaces []SpaceConfig `yaml:"spaces"`
+// WatchtowerConfig is the desired resource configuration to monitor with Watchtower
+type WatchtowerConfig struct {
+	AppConfig   AppConfig   `yaml:"apps"`
+	SpaceConfig SpaceConfig `yaml:"spaces"`
 }
 
-// AppConfig represents a Cloud Foundry App config entry
+// AppConfig represents the Watchtower app_config config file section.
 type AppConfig struct {
+	Enabled bool       `yaml:"enabled"`
+	Apps    []AppEntry `yaml:"cf_apps"`
+}
+
+// AppEntry represents the Watchtower
+type AppEntry struct {
 	Name string `yaml:"name"`
 }
 
-// SpaceConfig represents a Cloud Foundry Space config entry
 type SpaceConfig struct {
+	Enabled bool         `yaml:"enabled"`
+	Spaces  []SpaceEntry `yaml:"cf_spaces"`
+}
+
+// SpaceEntry represents a Cloud Foundry Space config entry
+type SpaceEntry struct {
 	Name     string `yaml:"name"`
 	AllowSSH bool   `yaml:"allow_ssh"`
 }
@@ -27,7 +38,7 @@ type SpaceConfig struct {
 // LoadResourceConfig reads config.yaml and parses it into a ResourceConfig. If
 // dataSource is nil, it will attempt to read from `config.yaml` in the current
 // directory.
-func LoadResourceConfig(dataSource []byte) ResourceConfig {
+func LoadResourceConfig(dataSource []byte) WatchtowerConfig {
 	if dataSource == nil {
 		log.Printf("Reading config from config.yaml...")
 		var err error
@@ -41,10 +52,10 @@ func LoadResourceConfig(dataSource []byte) ResourceConfig {
 	expandedString := os.ExpandEnv(string(dataSource))
 	dataSource = []byte(expandedString)
 
-	var resourceConfig ResourceConfig
-	if err := yaml.Unmarshal(dataSource, &resourceConfig); err != nil {
+	var watchtowerConfig WatchtowerConfig
+	if err := yaml.Unmarshal(dataSource, &watchtowerConfig); err != nil {
 		log.Fatalf("Could not parse config.yaml: %s", err)
 	}
 
-	return resourceConfig
+	return watchtowerConfig
 }
