@@ -19,6 +19,75 @@ Resources are checked on an opt-in model, meaning if you
 provide any app in the `config.yaml`, then all deployed apps must match the allow
 list.
 
+## Running Watchtower
+Watchtower can be run from anywhere that is able to hit your cloud foundry api.
+To run, either download a pre-compiled binary from the [releases](https://github.com/18F/watchtower/releases)
+page, or compile the go source yourself using `go build`.
+
+### Environment Variables
+The following environment variables are required for watchtower to interact with
+Cloud Foundry:
+
+| Environment variable name | Description |
+| --- | --- |
+| `CF_API` | The full URL of the Cloud Foundry API that Watchtower should interact with. Using the [CF CLI](https://docs.cloudfoundry.org/cf-cli/instal    l-go-cli.html), this value can be found with `cf api`. |
+| `CF_USER` | The username of the Cloud Foundry User account for Watchtower to authenticate with. |
+| `CF_PASS` | The password of the Cloud Foundry User account for Watchtower to authenticate with. |
+
+### Service Account and Permissions
+The user/pass provided to watchtower should be a service account with access to
+space auditor permissions. For environments that span multiple spaces such as a
+`dev-web` and `dev-data` that are both parts of a larger "dev" environment, the
+user provided to Watchtower should have auditor permissions on all spaces that
+contain resources you wish to monitor. Keep in mind that once you give auditor
+permissions for a space, `list` operations for a resource will now include all
+resources of that type from the included space, and thus need to be reflected
+in the config file provided to Watchtower to avoid false positives due to
+"unknown" resources showing up.
+
+## Watchtower Config
+Generic placeholder definitions:
+* `<boolean>`: a boolean that can take the values `true` or `false`
+* `<string>`: a regular string
+* `<secret>`: a regular string that is a secret, such as a password
+
+### Global
+```yaml
+app_config:
+  # Whether to enable monitoring of CF Apps
+  [ enabled: <boolean> | default = false ]
+
+  # List of CF Apps to monitor
+  apps:
+    [ - <app_config> ... ]
+
+space_config:
+  # Whether to enable monitoring of CF Spaces
+  [ enabled: <boolean> | default = false ]
+
+  # List of CF Apps to monitor
+  spaces:
+    [ - <space_config> ... ]
+```
+
+### `<app_config>`
+```yaml
+name: <string>
+```
+
+### `<space_config>`
+```yaml
+name: <string>
+allow_ssh: <boolean>
+```
+
+## Endpoints
+
+| Endpoint | Description |
+| --- | --- |
+| /metrics | Prometheus-style metrics endpoint containing all Watchtower metrics |
+| /config | The current Watchtower config |
+
 ## Exported Application Metrics
 The following table includes all application-specific prometheus metrics that are exported
 
