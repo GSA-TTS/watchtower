@@ -66,7 +66,7 @@ func NewCFClient() *cfclient.Client {
 	}
 	client, err := cfclient.NewClient(c)
 	if err != nil {
-		log.Panic("Could not create cfclient")
+		log.Panicf("Could not create cfclient. Error: %s", err)
 	} else {
 		log.Println("Successfully created cfclient")
 	}
