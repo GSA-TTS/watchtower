@@ -59,6 +59,10 @@ func (detector *Detector) Validate() {
 func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	defer wg.Done()
 
+	if detector.config.AppConfig.Enabled == false {
+		return
+	}
+
 	deployedApps, err := detector.client.ListV3AppsByQuery(url.Values{})
 	if err != nil {
 		log.Printf("ERROR in app refresh: %s. Skipping check.", err)
