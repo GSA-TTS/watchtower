@@ -51,6 +51,11 @@ Generic placeholder definitions:
 * `<string>`: a regular string
 * `<secret>`: a regular string that is a secret, such as a password
 
+### Environment Variable Expansion
+Watchtower will replace ${var} or $var in the provided config according to the
+values of the current environment variables. References to undefined variables
+are replaced by the empty string.
+
 ### Global
 ```yaml
 app_config:
