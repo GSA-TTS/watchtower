@@ -104,10 +104,10 @@ The following table includes all application-specific prometheus metrics that ar
 
 | Metric | Type | Description |
 | --- | --- | --- |
-| `watchtower_app_updates_failed_total` | Counter | Number of times the config refresh for V3Apps has failed for any reason |
-| `watchtower_app_updates_success_total` | Counter | Number of times the config refresh for V3Apps has succeeded |
-| `watchtower_route_updates_failed_total` | Counter | Number of times the config refresh for Routes has failed for any reason |
-| `watchtower_route_updates_success_total` | Counter | Number of times the config refresh for Routes has succeeded |
-| `watchtower_shared_domain_updates_failed_total` | Counter | Number of times the config refresh for Shared Domains has failed for any reason |
-| `watchtower_shared_domain_success_failed_total` | Counter | Number of times the config refresh for Shared Domains has succeeded |
+| `watchtower_app_checks_failed_total` | Counter | Number of times the config check for V3Apps has failed for any reason |
+| `watchtower_app_checks_success_total` | Counter | Number of times the config check for V3Apps has succeeded |
+| `watchtower_space_checks_failed_total` | Counter | Number of times the config check for Spaces has failed for any reason |
+| `watchtower_space_checks_success_total` | Counter | Number of times the config check for Spaces has succeeded |
 | `watchtower_unknown_apps_total` | Gauge | Number of Apps deployed that are not in the allowed config file |
+| `watchtower_missing_apps_total` | Gauge | Number of Apps in the allowed config file that are not deployed to Cloud Foundry |
+| `watchtower_ssh_space_misconfiguration_total` | Gauge | Number of spaces visible to Watchtower with SSH access that differs from the value in the config |

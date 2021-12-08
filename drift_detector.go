@@ -16,7 +16,7 @@ const DetectionInterval = time.Minute * time.Duration(5)
 // and those in the provided config allow list.
 type Detector struct {
 	client *cfclient.Client
-	config ResourceConfig
+	config WatchtowerConfig
 }
 
 // NewDetector starts and returns a new default Detector
@@ -49,8 +49,9 @@ func (detector *Detector) Validate() {
 	// Parallelize calls to validateX using goroutines and a sync.WaitGroup
 	var waitgroup sync.WaitGroup
 
-	waitgroup.Add(1)
+	waitgroup.Add(2)
 	go detector.validateApps(&waitgroup)
+	go detector.validateSpaces(&waitgroup)
 
 	waitgroup.Wait()
 }
@@ -65,20 +66,66 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 
 	deployedApps, err := detector.client.ListV3AppsByQuery(url.Values{})
 	if err != nil {
-		log.Printf("ERROR in app refresh: %s. Skipping check.", err)
-		failedAppUpdates.Inc()
+		log.Printf("ERROR in ListApps() request: %s. Skipping check.", err)
+		failedAppChecks.Inc()
 		return
 	}
-	unknownApps := 0
-OUTER:
-	for _, deployedApp := range deployedApps {
-		for _, allowedApp := range detector.config.Apps {
-			if allowedApp.Name == deployedApp.Name {
-				continue OUTER
+	deployedAppEntries := toAppEntries(deployedApps)
+	unknownApps := appDifference(deployedAppEntries, detector.config.AppConfig.Apps)
+	missingApps := appDifference(detector.config.AppConfig.Apps, deployedAppEntries)
+
+	log.Printf("Unknown Apps Detected: %s", unknownApps)
+	log.Printf("Missing Apps Detected: %s", missingApps)
+	totalUnknownApps.Set(float64(len(unknownApps)))
+	totalMissingApps.Set(float64(len(missingApps)))
+}
+
+func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	if detector.config.SpaceConfig.Enabled == false {
+		return
+	}
+
+	visibleSpaces, err := detector.client.ListSpacesByQuery(url.Values{})
+	if err != nil {
+		log.Printf("ERROR in ListSpaces request: %s. Skipping check.", err)
+		failedSpaceChecks.Inc()
+	}
+
+	for _, space := range visibleSpaces {
+		for _, spaceEntry := range detector.config.SpaceConfig.Spaces {
+			if space.Name == spaceEntry.Name && space.AllowSSH != spaceEntry.AllowSSH {
+				log.Printf("Misconfigured SSH access detected for space: %s. SSH access enabled: %v", space.Name, space.AllowSSH)
+				totalSpaceSSHViolations.Inc()
 			}
 		}
-		log.Printf("Unknown App Detected: %s", deployedApp.Name)
-		unknownApps++
 	}
-	totalUnknownApps.Set(float64(unknownApps))
+}
+
+// App difference returns a slice of unknown app names.
+// Given two AppEntry slices, returns the set difference of the two
+// slices (a - b). This can be logically used as follows:
+// unknownApps = (the set of deployed apps) - (the set of valid apps) OR
+// missingApps = (the set of valid apps) - (the set of deployed apps)
+func appDifference(deployed, valid []AppEntry) (diff []string) {
+	appMap := make(map[string]bool, len(valid))
+
+	for _, elem := range valid {
+		appMap[elem.Name] = true
+	}
+
+	for _, elem := range deployed {
+		if _, ok := appMap[elem.Name]; !ok {
+			diff = append(diff, elem.Name)
+		}
+	}
+	return
+}
+
+func toAppEntries(v3Apps []cfclient.V3App) (entries []AppEntry) {
+	for _, app := range v3Apps {
+		entries = append(entries, AppEntry{Name: app.Name})
+	}
+	return
 }
