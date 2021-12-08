@@ -37,7 +37,7 @@ func NewDetector() Detector {
 func (detector *Detector) start() {
 	interval := DetectionInterval
 	ticker := time.NewTicker(interval)
-	log.Printf("Starting Detector with refresh interval: %fs", interval.Seconds())
+	log.Printf("Starting Detector with refresh interval: %ds", int64(interval.Seconds()))
 	for range ticker.C {
 		detector.Validate()
 	}
