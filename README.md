@@ -58,29 +58,35 @@ are replaced by the empty string.
 
 ### Global
 ```yaml
-app_config:
-  # Whether to enable monitoring of CF Apps
+apps:
+  # Whether to enable monitoring of CF Apps. Enabled=false will result in 
+  # app-related metrics being the zero-value of the metric type.
   [ enabled: <boolean> | default = false ]
 
   # List of CF Apps to monitor
-  apps:
-    [ - <app_config> ... ]
+  cf_apps:
+    [ - <cf_app_config> ... ]
 
-space_config:
-  # Whether to enable monitoring of CF Spaces
+spaces:
+  # Whether to enable monitoring of CF Spaces. Enabled=false will result in 
+  # space-related metrics being the zero-value of the metric type.
   [ enabled: <boolean> | default = false ]
 
-  # List of CF Apps to monitor
-  spaces:
-    [ - <space_config> ... ]
+  # List of CF Spaces to monitor. Since it's not guaranteed that Watchtower has
+  # access to all the spaces listed in the config, watchtower will list all
+  # spaces it has access to and monitor any spaces with names matching config
+  # entries found here. E.g. listing dev, test, and prod spaces here, but only
+  # giving Watchtower auditor permissions on the dev space would result in 
+  # monitoring only the dev space.
+  cf_spaces:
+    [ - <cf_space_config> ... ]
 ```
 
-### `<app_config>`
+### `<cf_app_config>`
 ```yaml
 name: <string>
-```
 
-### `<space_config>`
+### `<cf_space_config>`
 ```yaml
 name: <string>
 allow_ssh: <boolean>
