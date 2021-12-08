@@ -37,6 +37,10 @@ func LoadResourceConfig(dataSource []byte) ResourceConfig {
 		}
 	}
 
+	// Expand env vars
+	expandedString := os.ExpandEnv(string(dataSource))
+	dataSource = []byte(expandedString)
+
 	var resourceConfig ResourceConfig
 	if err := yaml.Unmarshal(dataSource, &resourceConfig); err != nil {
 		log.Fatalf("Could not parse config.yaml: %s", err)
