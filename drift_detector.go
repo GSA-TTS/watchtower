@@ -84,6 +84,7 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	log.Printf("Missing Apps Detected: %s", missingApps)
 	totalUnknownApps.Set(float64(len(unknownApps)))
 	totalMissingApps.Set(float64(len(missingApps)))
+	successfulAppChecks.Inc()
 }
 
 func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
@@ -97,6 +98,7 @@ func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 	if err != nil {
 		log.Printf("ERROR in ListSpaces request: %s. Skipping check.", err)
 		failedSpaceChecks.Inc()
+		return
 	}
 
 	for _, space := range visibleSpaces {
@@ -107,6 +109,7 @@ func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 			}
 		}
 	}
+	successfulSpaceChecks.Inc()
 }
 
 // App difference returns a slice of unknown app names.
