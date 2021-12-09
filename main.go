@@ -13,7 +13,8 @@ import (
 
 const namespace = "watchtower"
 
-var configFileFlag = flag.String("config", "config.yaml", "Path to configuration file. Default='config.yaml'")
+var configPath = flag.String("config", "config.yaml", "Path to configuration file.")
+var validationInterval = flag.Int("interval", int(DetectionInterval.Seconds()), "The interval (in seconds) that Watchtower will run validation checks and update exported metrics")
 var configString = ""
 
 var (
@@ -71,7 +72,7 @@ func configHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
-	NewDetector(configFileFlag)
+	NewDetector(configPath, *validationInterval)
 
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/config", configHandler)

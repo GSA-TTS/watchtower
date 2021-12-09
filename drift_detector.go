@@ -16,12 +16,13 @@ const DetectionInterval = time.Minute * time.Duration(5)
 // Detector is used to find drift between the deployed Cloud Foundry resources
 // and those in the provided config allow list.
 type Detector struct {
-	client *cfclient.Client
-	config WatchtowerConfig
+	client   *cfclient.Client
+	config   WatchtowerConfig
+	interval int
 }
 
 // NewDetector starts and returns a new default Detector
-func NewDetector(configFile *string) Detector {
+func NewDetector(configFile *string, validationInterval int) Detector {
 	log.Printf("Config file path: %s", *configFile)
 	data, err := os.ReadFile(*configFile)
 	if err != nil {
@@ -31,7 +32,12 @@ func NewDetector(configFile *string) Detector {
 
 	// If secret values are ever added to config, they should be masked in configString.
 	configString = string(data)
-	detector := Detector{NewCFClient(), resourceConfig}
+
+	detector := Detector{
+		client:   NewCFClient(),
+		config:   resourceConfig,
+		interval: validationInterval,
+	}
 
 	// Call .Validate() before returning the detector so that exported metrics aren't
 	// evaluated at their zero-values before the .start() goroutine can can .Validate().
@@ -44,7 +50,7 @@ func NewDetector(configFile *string) Detector {
 
 // Start the Detector, calling .Validate every DetectionInterval
 func (detector *Detector) start() {
-	interval := DetectionInterval
+	interval := time.Second * time.Duration(detector.interval)
 	ticker := time.NewTicker(interval)
 	log.Printf("Starting Detector with refresh interval: %ds", int64(interval.Seconds()))
 	for range ticker.C {
