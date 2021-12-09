@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -11,56 +13,67 @@ import (
 
 const namespace = "watchtower"
 
+var configFileFlag = flag.String("config", "config.yaml", "Path to configuration file. Default='config.yaml'")
+var configString = ""
+
 var (
-	failedAppUpdates = promauto.NewCounter(prometheus.CounterOpts{
+	// Counters for failed/successful validation checks
+	failedAppChecks = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Subsystem: "app_updates",
+		Subsystem: "app_checks",
 		Name:      "failed_total",
 		Help:      "Number of times the config refresh for V3Apps has failed for any reason",
 	})
-	failedRouteUpdates = promauto.NewCounter(prometheus.CounterOpts{
+	successfulAppChecks = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Subsystem: "route_updates",
-		Name:      "failed_total",
-		Help:      "Number of times the config refresh for Routes has failed for any reason",
-	})
-	failedSharedDomainsUpdates = promauto.NewCounter(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: "shared_domain_updates",
-		Name:      "failed_total",
-		Help:      "Number of times the config refresh for Shared Domains has failed for any reason",
-	})
-
-	successfulAppUpdates = promauto.NewCounter(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: "app_updates",
+		Subsystem: "app_checks",
 		Name:      "success_total",
 		Help:      "Number of times the config refresh for V3Apps has succeeded",
 	})
-	successfulRouteUpdates = promauto.NewCounter(prometheus.CounterOpts{
+	failedSpaceChecks = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Subsystem: "route_updates",
-		Name:      "success_total",
-		Help:      "Number of times the config refresh for Routes has succeeded",
+		Subsystem: "space_checks",
+		Name:      "failed_total",
+		Help:      "Number of times the config check for Spaces has failed for any reason",
 	})
-	successfulSharedDomainsUpdates = promauto.NewCounter(prometheus.CounterOpts{
+	successfulSpaceChecks = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Subsystem: "shared_domain_updates",
+		Subsystem: "space_checks",
 		Name:      "success_total",
-		Help:      "Number of times the config refresh for Shared Domains has succeeded",
+		Help:      "Number of times the config check for Spaces has succeeded",
 	})
 
+	// Counters for unknown/missing/misconfigured resources
 	totalUnknownApps = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Subsystem: "unknown",
 		Name:      "apps_total",
 		Help:      "Number of Apps deployed that are not in the allowed config file (config.yaml)",
 	})
+	totalMissingApps = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: "missing",
+		Name:      "apps_total",
+		Help:      "Number of Apps in the provided config file that are not deployed",
+	})
+
+	totalSpaceSSHViolations = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: "ssh",
+		Name:      "space_misconfiguration_total",
+		Help:      "Number of Spaces that have misconfigured SSH access settings",
+	})
 )
 
+func configHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, configString)
+}
+
 func main() {
-	NewDetector()
+	flag.Parse()
+	NewDetector(configFileFlag)
 
 	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/config", configHandler)
 	log.Fatal(http.ListenAndServe(":"+ReadPortFromEnv(), nil))
 }

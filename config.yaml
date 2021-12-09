@@ -1,4 +1,15 @@
 ---
 apps:
-  - name: my-cool-app
-  - name: another-app
+  enabled: true
+  cf_apps:
+    - name: my-cool-app
+    - name: another-app
+spaces:
+  enabled: true
+  cf_spaces:
+    - name: dev
+      allow_ssh: true
+    - name: test
+      allow_ssh: true
+    - name: prod
+      allow_ssh: false

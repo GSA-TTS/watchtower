@@ -6,6 +6,11 @@ Watchtower does what any real-life watchtower would do -- it observes an area
 (in this case, a Cloud Foundry environment) and if something happens that isn't
 supposed to, it will communicate that to the authorities (a Prometheus server).
 
+## Features
+* Detect unknown apps deployed to Cloud Foundry
+* Detect missing apps *not* deployed to Cloud Foundry, but should be
+* Detect SSH access misconfigurations for CF Spaces
+
 ## How it works
 Watchtower reads in a `config.yaml` file that contains an allowed list of Cloud
 Foundry resources. It will scrape the CF API and detect any resources that are
@@ -19,15 +24,103 @@ Resources are checked on an opt-in model, meaning if you
 provide any app in the `config.yaml`, then all deployed apps must match the allow
 list.
 
+## Running Watchtower
+Watchtower can be run from anywhere that is able to hit your cloud foundry api.
+To run, either download a pre-compiled binary from the [releases](https://github.com/18F/watchtower/releases)
+page, or compile the go source yourself using `go build`.
+
+### CLI Arguments
+
+| Argument | Description |
+| --- | --- |
+| `-config` | Path to the configuration file. Default is "config.yaml" in the current directory |
+
+### Environment Variables
+The following environment variables are required for watchtower to interact with
+Cloud Foundry:
+
+| Environment variable name | Description |
+| --- | --- |
+| `CF_API` | The full URL of the Cloud Foundry API that Watchtower should interact with. Using the [CF CLI](https://docs.cloudfoundry.org/cf-cli/instal    l-go-cli.html), this value can be found with `cf api`. |
+| `CF_USER` | The username of the Cloud Foundry User account for Watchtower to authenticate with. |
+| `CF_PASS` | The password of the Cloud Foundry User account for Watchtower to authenticate with. |
+| `PORT` | The port for watchtower to listen on. Default is 8080. |
+
+### Service Account and Permissions
+The user/pass provided to watchtower should be a service account with access to
+space auditor permissions. For environments that span multiple spaces such as a
+`dev-web` and `dev-data` that are both parts of a larger "dev" environment, the
+user provided to Watchtower should have auditor permissions on all spaces that
+contain resources you wish to monitor. Keep in mind that once you give auditor
+permissions for a space, `list` operations for a resource will now include all
+resources of that type from the included space, and thus need to be reflected
+in the config file provided to Watchtower to avoid false positives due to
+"unknown" resources showing up.
+
+## Watchtower Config
+Generic placeholder definitions:
+* `<boolean>`: a boolean that can take the values `true` or `false`
+* `<string>`: a regular string
+* `<secret>`: a regular string that is a secret, such as a password
+
+### Environment Variable Expansion
+Watchtower will replace ${var} or $var in the provided config according to the
+values of the current environment variables. References to undefined variables
+are replaced by the empty string.
+
+### Global
+```yaml
+apps:
+  # Whether to enable monitoring of CF Apps. Enabled=false will result in 
+  # app-related metrics being the zero-value of the metric type.
+  [ enabled: <boolean> | default = false ]
+
+  # List of CF Apps to monitor
+  cf_apps:
+    [ - <cf_app_config> ... ]
+
+spaces:
+  # Whether to enable monitoring of CF Spaces. Enabled=false will result in 
+  # space-related metrics being the zero-value of the metric type.
+  [ enabled: <boolean> | default = false ]
+
+  # List of CF Spaces to monitor. Since it's not guaranteed that Watchtower has
+  # access to all the spaces listed in the config, watchtower will list all
+  # spaces it has access to and monitor any spaces with names matching config
+  # entries found here. E.g. listing dev, test, and prod spaces here, but only
+  # giving Watchtower auditor permissions on the dev space would result in 
+  # monitoring only the dev space.
+  cf_spaces:
+    [ - <cf_space_config> ... ]
+```
+
+### `<cf_app_config>`
+```yaml
+name: <string>
+```
+
+### `<cf_space_config>`
+```yaml
+name: <string>
+allow_ssh: <boolean>
+```
+
+## Endpoints
+
+| Endpoint | Description |
+| --- | --- |
+| `/metrics` | Prometheus-style metrics endpoint containing all Watchtower metrics |
+| `/config` | The current Watchtower config |
+
 ## Exported Application Metrics
 The following table includes all application-specific prometheus metrics that are exported
 
 | Metric | Type | Description |
 | --- | --- | --- |
-| `watchtower_app_updates_failed_total` | Counter | Number of times the config refresh for V3Apps has failed for any reason |
-| `watchtower_app_updates_success_total` | Counter | Number of times the config refresh for V3Apps has succeeded |
-| `watchtower_route_updates_failed_total` | Counter | Number of times the config refresh for Routes has failed for any reason |
-| `watchtower_route_updates_success_total` | Counter | Number of times the config refresh for Routes has succeeded |
-| `watchtower_shared_domain_updates_failed_total` | Counter | Number of times the config refresh for Shared Domains has failed for any reason |
-| `watchtower_shared_domain_success_failed_total` | Counter | Number of times the config refresh for Shared Domains has succeeded |
+| `watchtower_app_checks_failed_total` | Counter | Number of times the config check for V3Apps has failed for any reason |
+| `watchtower_app_checks_success_total` | Counter | Number of times the config check for V3Apps has succeeded |
+| `watchtower_space_checks_failed_total` | Counter | Number of times the config check for Spaces has failed for any reason |
+| `watchtower_space_checks_success_total` | Counter | Number of times the config check for Spaces has succeeded |
 | `watchtower_unknown_apps_total` | Gauge | Number of Apps deployed that are not in the allowed config file |
+| `watchtower_missing_apps_total` | Gauge | Number of Apps in the allowed config file that are not deployed to Cloud Foundry |
+| `watchtower_ssh_space_misconfiguration_total` | Gauge | Number of spaces visible to Watchtower with SSH access that differs from the value in the config |
