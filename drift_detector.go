@@ -28,6 +28,7 @@ func NewDetector(configFile *string) Detector {
 		log.Fatalf("Unable to read config file. %s", err)
 	}
 	resourceConfig := LoadResourceConfig(data)
+	configString = string(data)
 	detector := Detector{NewCFClient(), resourceConfig}
 
 	// Call .Validate() before returning the detector so that exported metrics aren't

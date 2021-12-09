@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -13,6 +14,7 @@ import (
 const namespace = "watchtower"
 
 var configFileFlag = flag.String("config", "config.yaml", "Path to configuration file. Default='config.yaml'")
+var configString = ""
 
 var (
 	// Counters for failed/successful validation checks
@@ -63,10 +65,15 @@ var (
 	})
 )
 
+func configHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, configString)
+}
+
 func main() {
 	flag.Parse()
 	NewDetector(configFileFlag)
 
 	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/config", configHandler)
 	log.Fatal(http.ListenAndServe(":"+ReadPortFromEnv(), nil))
 }
