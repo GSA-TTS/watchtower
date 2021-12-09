@@ -58,9 +58,16 @@ func (detector *Detector) Validate() {
 	// Parallelize calls to validateX using goroutines and a sync.WaitGroup
 	var waitgroup sync.WaitGroup
 
-	waitgroup.Add(2)
-	go detector.validateApps(&waitgroup)
-	go detector.validateSpaces(&waitgroup)
+	validationFunctions := []func(*sync.WaitGroup){
+		detector.validateApps,
+		detector.validateSpaces,
+	}
+
+	waitgroup.Add(len(validationFunctions))
+
+	for _, function := range validationFunctions {
+		go function(&waitgroup)
+	}
 
 	waitgroup.Wait()
 }
@@ -90,6 +97,9 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	successfulAppChecks.Inc()
 }
 
+// validateSpaces verifies spaces that Watchtower has read access to against
+// the provided config. If watchtower does not have permissions to a space, it
+// will be skipped.
 func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -135,6 +145,7 @@ func appDifference(a, b []AppEntry) (diff []string) {
 	return
 }
 
+// toAppEntries converts a slice of cfclient.V3App to a slice of AppEntry
 func toAppEntries(v3Apps []cfclient.V3App) (entries []AppEntry) {
 	for _, app := range v3Apps {
 		entries = append(entries, AppEntry{Name: app.Name})
