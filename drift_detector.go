@@ -66,7 +66,7 @@ func (detector *Detector) Validate() {
 func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if detector.config.AppConfig.Enabled == false {
+	if !detector.config.AppConfig.Enabled {
 		return
 	}
 
@@ -89,7 +89,7 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if detector.config.SpaceConfig.Enabled == false {
+	if !detector.config.SpaceConfig.Enabled {
 		return
 	}
 
