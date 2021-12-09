@@ -6,6 +6,11 @@ Watchtower does what any real-life watchtower would do -- it observes an area
 (in this case, a Cloud Foundry environment) and if something happens that isn't
 supposed to, it will communicate that to the authorities (a Prometheus server).
 
+## Features
+* Detect unknown apps deployed to Cloud Foundry
+* Detect missing apps *not* deployed to Cloud Foundry, but should be
+* Detect SSH access misconfigurations for CF Spaces
+
 ## How it works
 Watchtower reads in a `config.yaml` file that contains an allowed list of Cloud
 Foundry resources. It will scrape the CF API and detect any resources that are
