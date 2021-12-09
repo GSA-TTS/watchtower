@@ -91,6 +91,7 @@ spaces:
 ### `<cf_app_config>`
 ```yaml
 name: <string>
+```
 
 ### `<cf_space_config>`
 ```yaml
