@@ -33,7 +33,8 @@ page, or compile the go source yourself using `go build`.
 
 | Argument | Description |
 | --- | --- |
-| `-config` | Path to the configuration file. Default is "config.yaml" in the current directory |
+| `-config` | Path to the configuration file |
+| `-interval` | The interval (in seconds) that Watchtower will run validation checks and update exported metrics |
 
 ### Environment Variables
 The following environment variables are required for watchtower to interact with
