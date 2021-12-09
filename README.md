@@ -41,7 +41,7 @@ Cloud Foundry:
 
 | Environment variable name | Description |
 | --- | --- |
-| `CF_API` | The full URL of the Cloud Foundry API that Watchtower should interact with. Using the [CF CLI](https://docs.cloudfoundry.org/cf-cli/instal    l-go-cli.html), this value can be found with `cf api`. |
+| `CF_API` | The full URL of the Cloud Foundry API that Watchtower should interact with. Using the [CF CLI](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html), this value can be found with `cf api`. |
 | `CF_USER` | The username of the Cloud Foundry User account for Watchtower to authenticate with. |
 | `CF_PASS` | The password of the Cloud Foundry User account for Watchtower to authenticate with. |
 | `PORT` | The port for watchtower to listen on. Default is 8080. |
