@@ -33,7 +33,8 @@ page, or compile the go source yourself using `go build`.
 
 | Argument | Description |
 | --- | --- |
-| `-config` | Path to the configuration file. Default is "config.yaml" in the current directory |
+| `-config` | Path to the configuration file |
+| `-interval` | The interval (in seconds) that Watchtower will run validation checks and update exported metrics |
 
 ### Environment Variables
 The following environment variables are required for watchtower to interact with
@@ -41,7 +42,7 @@ Cloud Foundry:
 
 | Environment variable name | Description |
 | --- | --- |
-| `CF_API` | The full URL of the Cloud Foundry API that Watchtower should interact with. Using the [CF CLI](https://docs.cloudfoundry.org/cf-cli/instal    l-go-cli.html), this value can be found with `cf api`. |
+| `CF_API` | The full URL of the Cloud Foundry API that Watchtower should interact with. Using the [CF CLI](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html), this value can be found with `cf api`. |
 | `CF_USER` | The username of the Cloud Foundry User account for Watchtower to authenticate with. |
 | `CF_PASS` | The password of the Cloud Foundry User account for Watchtower to authenticate with. |
 | `PORT` | The port for watchtower to listen on. Default is 8080. |
