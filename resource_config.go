@@ -54,7 +54,7 @@ func LoadResourceConfig(dataSource []byte) WatchtowerConfig {
 
 	var watchtowerConfig WatchtowerConfig
 	if err := yaml.Unmarshal(dataSource, &watchtowerConfig); err != nil {
-		log.Fatalf("Could not parse config.yaml: %s", err)
+		log.Fatalf("Error parsing config file: %s", err)
 	}
 
 	return watchtowerConfig

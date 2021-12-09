@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
@@ -20,8 +21,13 @@ type Detector struct {
 }
 
 // NewDetector starts and returns a new default Detector
-func NewDetector() Detector {
-	resourceConfig := LoadResourceConfig(nil)
+func NewDetector(configFile *string) Detector {
+	log.Printf("Config file path: %s", *configFile)
+	data, err := os.ReadFile(*configFile)
+	if err != nil {
+		log.Fatalf("Unable to read config file. %s", err)
+	}
+	resourceConfig := LoadResourceConfig(data)
 	detector := Detector{NewCFClient(), resourceConfig}
 
 	// Call .Validate() before returning the detector so that exported metrics aren't
