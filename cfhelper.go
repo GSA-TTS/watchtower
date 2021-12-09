@@ -53,9 +53,9 @@ func readAPIFromEnv() string {
 	if err != nil {
 		log.Panicf("Could not parse CF API URL: '%s'.", apiString)
 	}
-	cfApi := apiURL.String()
-	log.Printf("Using CF_API: %s", cfApi)
-	return cfApi
+	cfAPI := apiURL.String()
+	log.Printf("Using CF_API: %s", cfAPI)
+	return cfAPI
 }
 
 // NewCFClient creates and returns a cfclient.Client. Reads CF_API, CF_USER, and
