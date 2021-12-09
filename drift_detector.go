@@ -120,14 +120,14 @@ func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 // slices (a - b). This can be logically used as follows:
 // unknownApps = (the set of deployed apps) - (the set of valid apps) OR
 // missingApps = (the set of valid apps) - (the set of deployed apps)
-func appDifference(deployed, valid []AppEntry) (diff []string) {
-	appMap := make(map[string]bool, len(valid))
+func appDifference(a, b []AppEntry) (diff []string) {
+	appMap := make(map[string]bool, len(b))
 
-	for _, elem := range valid {
+	for _, elem := range b {
 		appMap[elem.Name] = true
 	}
 
-	for _, elem := range deployed {
+	for _, elem := range a {
 		if _, ok := appMap[elem.Name]; !ok {
 			diff = append(diff, elem.Name)
 		}
