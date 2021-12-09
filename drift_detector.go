@@ -28,6 +28,8 @@ func NewDetector(configFile *string) Detector {
 		log.Fatalf("Unable to read config file. %s", err)
 	}
 	resourceConfig := LoadResourceConfig(data)
+
+	// If secret values are ever added to config, they should be masked in configString.
 	configString = string(data)
 	detector := Detector{NewCFClient(), resourceConfig}
 
