@@ -24,6 +24,12 @@ Watchtower can be run from anywhere that is able to hit your cloud foundry api.
 To run, either download a pre-compiled binary from the [releases](https://github.com/18F/watchtower/releases)
 page, or compile the go source yourself using `go build`.
 
+### CLI Arguments
+
+| Argument | Description |
+| --- | --- |
+| -config | Path to the configuration file. Default is "config.yaml" in the current directory |
+
 ### Environment Variables
 The following environment variables are required for watchtower to interact with
 Cloud Foundry:
