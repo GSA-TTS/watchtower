@@ -39,6 +39,7 @@ Cloud Foundry:
 | `CF_API` | The full URL of the Cloud Foundry API that Watchtower should interact with. Using the [CF CLI](https://docs.cloudfoundry.org/cf-cli/instal    l-go-cli.html), this value can be found with `cf api`. |
 | `CF_USER` | The username of the Cloud Foundry User account for Watchtower to authenticate with. |
 | `CF_PASS` | The password of the Cloud Foundry User account for Watchtower to authenticate with. |
+| `PORT` | The port for watchtower to listen on. Default is 8080. |
 
 ### Service Account and Permissions
 The user/pass provided to watchtower should be a service account with access to
@@ -103,8 +104,8 @@ allow_ssh: <boolean>
 
 | Endpoint | Description |
 | --- | --- |
-| /metrics | Prometheus-style metrics endpoint containing all Watchtower metrics |
-| /config | The current Watchtower config |
+| `/metrics` | Prometheus-style metrics endpoint containing all Watchtower metrics |
+| `/config` | The current Watchtower config |
 
 ## Exported Application Metrics
 The following table includes all application-specific prometheus metrics that are exported
