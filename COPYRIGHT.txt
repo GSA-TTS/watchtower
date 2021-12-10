@@ -1,0 +1,9 @@
+COPYRIGHT NOTICE: This work, authored by Easy Dynamics Corp. employees, was
+funded in whole or in part by federal funds under U.S. Government contract
+47QPCA20P0002 and is, therefore, subject to the following license:
+
+The Government is granted for itself and others acting on its behalf a paid-up,
+nonexclusive, irrevocable, worldwide license in this work to use, reproduce,
+modify, prepare derivative works, disclose, distribute copies to the public,
+and perform publicly and display publicly, by or on behalf of the Government.
+All other rights are reserved by the copyright owner.
