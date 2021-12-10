@@ -96,8 +96,12 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	unknownApps := appDifference(deployedAppEntries, detector.config.AppConfig.Apps)
 	missingApps := appDifference(detector.config.AppConfig.Apps, deployedAppEntries)
 
-	log.Printf("Unknown Apps Detected: %s", unknownApps)
-	log.Printf("Missing Apps Detected: %s", missingApps)
+	if len(unknownApps) != 0 {
+		log.Printf("Unknown Apps Detected: %s", unknownApps)
+	}
+	if len(missingApps) != 0 {
+		log.Printf("Missing Apps Detected: %s", missingApps)
+	}
 	totalUnknownApps.Set(float64(len(unknownApps)))
 	totalMissingApps.Set(float64(len(missingApps)))
 	successfulAppChecks.Inc()
