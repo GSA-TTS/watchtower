@@ -78,6 +78,23 @@ func (detector *Detector) Validate() {
 	waitgroup.Wait()
 }
 
+func (detector *Detector) getDeployedApps() (map[string]cfclient.V3App, error) {
+	// Retrieve the app data from cloud.gov
+	deployedApps, err := detector.client.ListV3AppsByQuery(url.Values{})
+	if err != nil {
+		log.Printf("ERROR in ListApps() request: %s. Skipping check.", err)
+		failedAppChecks.Inc()
+		return nil, err
+	}
+
+	// Convert the app data to a map so that lookups can be performed without iterating over the data every time
+	deployedAppMap := make(map[string]cfclient.V3App)
+	for _, app := range deployedApps {
+		deployedAppMap[app.Name] = app
+	}
+	return deployedAppMap, nil
+}
+
 // ValidateApps performs CF App resource validation
 func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -86,15 +103,24 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 		return
 	}
 
-	deployedApps, err := detector.client.ListV3AppsByQuery(url.Values{})
+	deployedApps, err := detector.getDeployedApps()
 	if err != nil {
-		log.Printf("ERROR in ListApps() request: %s. Skipping check.", err)
-		failedAppChecks.Inc()
 		return
 	}
-	deployedAppEntries := toAppEntries(deployedApps)
-	unknownApps := appDifference(deployedAppEntries, detector.config.Data.AppConfig.Apps)
-	missingApps := appDifference(detector.config.Data.AppConfig.Apps, deployedAppEntries)
+
+	var unknownApps []string
+	for _, deployedApp := range deployedApps {
+		if _, ok := detector.config.Apps[deployedApp.Name]; !ok {
+			unknownApps = append(unknownApps, deployedApp.Name)
+		}
+	}
+
+	var missingApps []string
+	for _, expectedApp := range detector.config.Apps {
+		if _, ok := deployedApps[expectedApp.Name]; !ok && !expectedApp.Optional {
+			missingApps = append(missingApps, expectedApp.Name)
+		}
+	}
 
 	if len(unknownApps) != 0 {
 		log.Printf("Unknown Apps Detected: %s", unknownApps)
@@ -124,7 +150,7 @@ func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 		return
 	}
 
-	var spaceSSHViolations float64 = 0
+	var spaceSSHViolations float64
 
 	for _, space := range visibleSpaces {
 		if spaceEntry, ok := detector.config.Spaces[space.Name]; ok && space.AllowSSH != spaceEntry.AllowSSH {
@@ -134,32 +160,4 @@ func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 	}
 	totalSpaceSSHViolations.Set(spaceSSHViolations)
 	successfulSpaceChecks.Inc()
-}
-
-// App difference returns a slice of unknown app names.
-// Given two AppEntry slices, returns the set difference of the two
-// slices (a - b). This can be logically used as follows:
-// unknownApps = (the set of deployed apps) - (the set of valid apps) OR
-// missingApps = (the set of valid apps) - (the set of deployed apps)
-func appDifference(a, b []AppEntry) (diff []string) {
-	appMap := make(map[string]bool, len(b))
-
-	for _, elem := range b {
-		appMap[elem.Name] = true
-	}
-
-	for _, elem := range a {
-		if _, ok := appMap[elem.Name]; !ok {
-			diff = append(diff, elem.Name)
-		}
-	}
-	return
-}
-
-// toAppEntries converts a slice of cfclient.V3App to a slice of AppEntry
-func toAppEntries(v3Apps []cfclient.V3App) (entries []AppEntry) {
-	for _, app := range v3Apps {
-		entries = append(entries, AppEntry{Name: app.Name, Optional: false})
-	}
-	return
 }
