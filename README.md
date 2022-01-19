@@ -98,12 +98,15 @@ spaces:
 ### `<cf_app_config>`
 ```yaml
 name: <string>
+# Whether the app will be marked as "missing" if it is not observed. Apps
+# marked as optional will never be marked as missing or unknown.
+[optional: <bool> | default = false]
 ```
 
 ### `<cf_space_config>`
 ```yaml
 name: <string>
-allow_ssh: <boolean>
+allow_ssh: <boolean> | default = false
 ```
 
 ## Endpoints
