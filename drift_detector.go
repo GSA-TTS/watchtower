@@ -127,11 +127,9 @@ func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 	var spaceSSHViolations float64 = 0
 
 	for _, space := range visibleSpaces {
-		for _, spaceEntry := range detector.config.SpaceConfig.Spaces {
-			if space.Name == spaceEntry.Name && space.AllowSSH != spaceEntry.AllowSSH {
-				log.Printf("Misconfigured SSH access detected for space: %s. SSH access enabled: %v", space.Name, space.AllowSSH)
-				spaceSSHViolations++
-			}
+		if spaceEntry, ok := detector.config.Spaces[space.Name]; ok && space.AllowSSH != spaceEntry.AllowSSH {
+			log.Printf("Misconfigured SSH access detected for space: %s. SSH access enabled: %v", space.Name, space.AllowSSH)
+			spaceSSHViolations++
 		}
 	}
 	totalSpaceSSHViolations.Set(spaceSSHViolations)
