@@ -24,9 +24,8 @@ type YAMLConfig struct {
 
 // AppConfig represents the Watchtower app_config config file section.
 type AppConfig struct {
-	Enabled      bool       `yaml:"enabled"`
-	Apps         []AppEntry `yaml:"cf_apps"`
-	optionalApps map[string]AppEntry
+	Enabled bool       `yaml:"enabled"`
+	Apps    []AppEntry `yaml:"cf_apps"`
 }
 
 // AppEntry represents the Watchtower
