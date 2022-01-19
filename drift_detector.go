@@ -82,8 +82,6 @@ func (detector *Detector) getDeployedApps() (map[string]cfclient.V3App, error) {
 	// Retrieve the app data from cloud.gov
 	deployedApps, err := detector.client.ListV3AppsByQuery(url.Values{})
 	if err != nil {
-		log.Printf("ERROR in ListApps() request: %s. Skipping check.", err)
-		failedAppChecks.Inc()
 		return nil, err
 	}
 
@@ -105,6 +103,8 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 
 	deployedApps, err := detector.getDeployedApps()
 	if err != nil {
+		log.Printf("ERROR in ListApps() request: %s. Skipping check.", err)
+		failedAppChecks.Inc()
 		return
 	}
 
