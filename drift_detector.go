@@ -17,7 +17,7 @@ const DetectionInterval = time.Minute * time.Duration(5)
 // and those in the provided config allow list.
 type Detector struct {
 	client   *cfclient.Client
-	config   WatchtowerConfig
+	config   Config
 	interval int
 }
 
@@ -82,7 +82,7 @@ func (detector *Detector) Validate() {
 func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if !detector.config.AppConfig.Enabled {
+	if !detector.config.Data.AppConfig.Enabled {
 		return
 	}
 
@@ -93,8 +93,8 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 		return
 	}
 	deployedAppEntries := toAppEntries(deployedApps)
-	unknownApps := appDifference(deployedAppEntries, detector.config.AppConfig.Apps)
-	missingApps := appDifference(detector.config.AppConfig.Apps, deployedAppEntries)
+	unknownApps := appDifference(deployedAppEntries, detector.config.Data.AppConfig.Apps)
+	missingApps := appDifference(detector.config.Data.AppConfig.Apps, deployedAppEntries)
 
 	if len(unknownApps) != 0 {
 		log.Printf("Unknown Apps Detected: %s", unknownApps)
@@ -113,7 +113,7 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if !detector.config.SpaceConfig.Enabled {
+	if !detector.config.Data.SpaceConfig.Enabled {
 		return
 	}
 
@@ -161,7 +161,7 @@ func appDifference(a, b []AppEntry) (diff []string) {
 // toAppEntries converts a slice of cfclient.V3App to a slice of AppEntry
 func toAppEntries(v3Apps []cfclient.V3App) (entries []AppEntry) {
 	for _, app := range v3Apps {
-		entries = append(entries, AppEntry{Name: app.Name})
+		entries = append(entries, AppEntry{Name: app.Name, Optional: false})
 	}
 	return
 }
