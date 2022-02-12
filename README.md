@@ -58,6 +58,10 @@ resources of that type from the included space, and thus need to be reflected
 in the config file provided to Watchtower to avoid false positives due to
 "unknown" resources showing up.
 
+### Using a Forward Proxy
+Running watchtower behind a forward proxy is as simple as setting the
+`HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables.
+
 ## Watchtower Config
 Generic placeholder definitions:
 * `<boolean>`: a boolean that can take the values `true` or `false`
