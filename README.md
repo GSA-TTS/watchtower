@@ -81,7 +81,7 @@ apps:
   [ enabled: <boolean> | default = false ]
 
   # List of CF Apps to monitor
-  cf_apps:
+  resources:
     [ - <cf_app_config> ... ]
 
 spaces:
@@ -95,7 +95,7 @@ spaces:
   # entries found here. E.g. listing dev, test, and prod spaces here, but only
   # giving Watchtower auditor permissions on the dev space would result in 
   # monitoring only the dev space.
-  cf_spaces:
+  resources:
     [ - <cf_space_config> ... ]
 ```
 
