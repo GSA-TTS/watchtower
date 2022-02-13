@@ -16,33 +16,43 @@ type Config struct {
 	Spaces map[string]SpaceEntry
 }
 
-// YAMLConfig is the desired resource configuration to monitor with Watchtower
+// Config file definition begins here
+
+// Top-level keys
 type YAMLConfig struct {
 	AppConfig   AppConfig   `yaml:"apps"`
 	SpaceConfig SpaceConfig `yaml:"spaces"`
 }
 
-// AppConfig represents the Watchtower app_config config file section.
+// Allowed values under 'apps' (a top-level key)
 type AppConfig struct {
 	Enabled bool       `yaml:"enabled"`
-	Apps    []AppEntry `yaml:"cf_apps"`
+	Apps    []AppEntry `yaml:"resources"`
 }
 
-// AppEntry represents the Watchtower
+// Allowed values under 'resources' section of 'apps'
 type AppEntry struct {
-	Name     string `yaml:"name"`
-	Optional bool   `yaml:"optional"`
+	Name     string       `yaml:"name"`
+	Optional bool         `yaml:"optional"`
+	Routes   []RouteEntry `yaml:"routes"`
 }
 
+// SpaceConfig represents the Watchtower 'spaces' config file section.
 type SpaceConfig struct {
 	Enabled bool         `yaml:"enabled"`
-	Spaces  []SpaceEntry `yaml:"cf_spaces"`
+	Spaces  []SpaceEntry `yaml:"resources"`
 }
 
-// SpaceEntry represents a Cloud Foundry Space config entry
+// Allowed values under 'resources' section of 'spaces'
 type SpaceEntry struct {
 	Name     string `yaml:"name"`
 	AllowSSH bool   `yaml:"allow_ssh"`
+}
+
+// RouteEntry represents the allowed values for each entry under 'routes' within 'apps'
+type RouteEntry struct {
+	Host   string `yaml:"host"`
+	Domain string `yaml:"domain"`
 }
 
 // LoadResourceConfig reads config.yaml and parses it into a ResourceConfig. If
