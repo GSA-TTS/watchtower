@@ -1,12 +1,12 @@
 ---
 apps:
   enabled: true
-  cf_apps:
+  resources:
     - name: my-cool-app
     - name: another-app
 spaces:
   enabled: true
-  cf_spaces:
+  resources:
     - name: dev
       allow_ssh: true
     - name: test
