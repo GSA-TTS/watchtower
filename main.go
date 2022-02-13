@@ -64,6 +64,19 @@ var (
 		Name:      "space_misconfiguration_total",
 		Help:      "Number of Spaces that have misconfigured SSH access settings",
 	})
+
+	totalUnknownRoutes = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: "unknown",
+		Name:      "app_routes_total",
+		Help:      "Number of Routes deployed that are not in the allowed config file (config.yaml)",
+	})
+	totalMissingRoutes = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: "missing",
+		Name:      "app_routes_total",
+		Help:      "Number of Routes in the provided config file that are not deployed",
+	})
 )
 
 func configHandler(w http.ResponseWriter, r *http.Request) {
