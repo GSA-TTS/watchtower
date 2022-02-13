@@ -105,6 +105,14 @@ name: <string>
 # Whether the app will be marked as "missing" if it is not observed. Apps
 # marked as optional will never be marked as missing or unknown.
 [optional: <bool> | default = false]
+routes:
+  [ - <cf_route_config> ... ]
+```
+
+### `<cf_route_config>`
+```yaml
+Host: <string>
+Domain: <string>
 ```
 
 ### `<cf_space_config>`
@@ -132,3 +140,5 @@ The following table includes all application-specific prometheus metrics that ar
 | `watchtower_unknown_apps_total` | Gauge | Number of Apps deployed that are not in the allowed config file |
 | `watchtower_missing_apps_total` | Gauge | Number of Apps in the allowed config file that are not deployed to Cloud Foundry |
 | `watchtower_ssh_space_misconfiguration_total` | Gauge | Number of spaces visible to Watchtower with SSH access that differs from the value in the config |
+| `watchtower_unknown_app_route_total` | Gauge | Number of App Routes visible to Watchtower that differ from the values in the config |
+| `watchtower_missing_app_route_total` | Gauge | Number of App Routes in the allowed config file that are not deployed to Cloud Foundry |
