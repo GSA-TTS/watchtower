@@ -12,8 +12,8 @@ import (
 // environment.
 type Config struct {
 	Data   YAMLConfig
-	Apps   map[string]AppEntry
-	Spaces map[string]SpaceEntry
+	Apps   map[string]AppEntry   // AppName -> AppEntry
+	Spaces map[string]SpaceEntry // SpaceName -> SpaceEntry
 }
 
 // Config file definition begins here
