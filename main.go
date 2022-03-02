@@ -43,6 +43,18 @@ var (
 		Name:      "success_total",
 		Help:      "Number of times the config check for Spaces has succeeded",
 	})
+	failedRouteChecks = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: "route_checks",
+		Name:      "failed_total",
+		Help:      "Number of times the config refresh for Routes has failed for any reason",
+	})
+	successfulRouteChecks = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: "route_checks",
+		Name:      "success_total",
+		Help:      "Number of times the config refresh for Routes has succeeded",
+	})
 
 	// Counters for unknown/missing/misconfigured resources
 	totalUnknownApps = promauto.NewGauge(prometheus.GaugeOpts{
