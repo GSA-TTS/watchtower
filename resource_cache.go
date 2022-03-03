@@ -54,6 +54,16 @@ func (cache *CFResourceCache) Refresh() {
 	waitgroup.Wait()
 }
 
+// isValid() returns 'true' if all sub-caches are valid, and 'false' otherwise
+func (cache *CFResourceCache) isValid() bool {
+	return cache.Apps.Valid &&
+		cache.Routes.Valid &&
+		cache.RouteMappings.Valid &&
+		cache.Domains.Valid &&
+		cache.SharedDomains.Valid &&
+		cache.Spaces.Valid
+}
+
 // findRouteByURL returns a CF Route based on the Host+Domain, abstracting away the CF concept of shared vs private domains.
 func (cache *CFResourceCache) findRouteByURL(host, domain string) (cfclient.Route, bool) {
 	for _, route := range cache.Routes.routes {
