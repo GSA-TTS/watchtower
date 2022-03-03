@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/url"
 	"sync"
@@ -92,6 +93,34 @@ func (cache *CFResourceCache) findDomainNameByGUID(guid string) (string, bool) {
 		return domain.Name, true
 	}
 	return "", false
+}
+
+// getMappingResources returns the app, route, and domain name associated with the given route mapping GUID.
+func (cache *CFResourceCache) getMappingResources(mappingGUID string) (cfclient.V3App, cfclient.Route, string, error) {
+	routeMapping, ok := cache.RouteMappings.guidMap[mappingGUID]
+	if !ok {
+		var errString = "RouteMapping with GUID " + mappingGUID + " not found in cache"
+		return cfclient.V3App{}, cfclient.Route{}, "", errors.New(errString)
+	}
+	route, ok := cache.Routes.guidMap[routeMapping.RouteGUID]
+	if !ok {
+		var errString = "Route with GUID " + routeMapping.RouteGUID + " not found in cache"
+		return cfclient.V3App{}, cfclient.Route{}, "", errors.New(errString)
+	}
+
+	domainName, ok := cache.findDomainNameByGUID(route.DomainGuid)
+	if !ok {
+		var errString = "Domain with GUID " + route.DomainGuid + " not found in cache"
+		return cfclient.V3App{}, cfclient.Route{}, "", errors.New(errString)
+	}
+
+	app, ok := cache.Apps.guidMap[routeMapping.AppGUID]
+	if !ok {
+		var errString = "App with GUID " + routeMapping.AppGUID + " not found in cache"
+		return cfclient.V3App{}, cfclient.Route{}, "", errors.New(errString)
+	}
+
+	return app, route, domainName, nil
 }
 
 // AppCache holds the most recently scraped CF App information
