@@ -21,6 +21,7 @@ type CFResourceCache struct {
 	Routes        RouteCache
 	RouteMappings RouteMappingCache
 	Domains       DomainCache
+	SharedDomains SharedDomainCache
 	Spaces        SpaceCache
 }
 
@@ -165,10 +166,39 @@ func (cache *RouteMappingCache) refresh(wg *sync.WaitGroup) {
 	cache.Valid = true
 }
 
-// LookupByGUID returns the requested Route, and a bool indicating whether it was found in the cache.
-func (cache *RouteMappingCache) LookupByGUID(guid string) (cfclient.RouteMapping, bool) {
-	elem, ok := cache.guidMap[guid]
-	return elem, ok
+// SharedDomainCache holds the most recently scraped CF SharedDomain information
+type SharedDomainCache struct {
+	// SharedDomainCache.Valid will be 'true' when the cache was successfully refreshed and 'false' if the last refresh failed.
+	Valid   bool
+	domains []cfclient.SharedDomain
+	guidMap map[string]cfclient.SharedDomain
+	nameMap map[string]cfclient.SharedDomain
+}
+
+func (cache *SharedDomainCache) refresh(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// Retrieve the domain data from cloud.gov
+	resourceList, err := client.ListSharedDomains()
+	if err != nil {
+		cache.Valid = false
+		log.Printf("Failed refreshing CF SharedDomains: %s", err)
+		return
+	}
+
+	// Convert the domain data to a map so that lookups can be performed without iterating over the data every time
+	guidMap := make(map[string]cfclient.SharedDomain)
+	nameMap := make(map[string]cfclient.SharedDomain)
+
+	for _, elem := range resourceList {
+		guidMap[elem.Guid] = elem
+		nameMap[elem.Name] = elem
+	}
+
+	cache.domains = resourceList
+	cache.guidMap = guidMap
+	cache.nameMap = nameMap
+	cache.Valid = true
 }
 
 // DomainCache holds the most recently scraped CF Domain information
