@@ -10,9 +10,14 @@ Watchtower does what any real-life watchtower would do -- it observes an area
 supposed to, it will communicate that to the authorities (a Prometheus server).
 
 ## Features
-* Detect unknown apps deployed to Cloud Foundry
-* Detect missing apps *not* deployed to Cloud Foundry, but should be
-* Detect SSH access misconfigurations for CF Spaces
+* Detect unknown resources deployed to Cloud Foundry
+* Detect missing resources *not* deployed to Cloud Foundry, but should be
+* Detect SSH access misconfigurations
+
+### Supported Resource Types
+* Apps
+* Routes
+* Spaces
 
 ## How it works
 Watchtower reads in a `config.yaml` file that contains an allowed list of Cloud
@@ -108,14 +113,15 @@ name: <string>
 # Whether the app will be marked as "missing" if it is not observed. Apps
 # marked as optional will never be marked as missing or unknown.
 [optional: <bool> | default = false]
-routes:
-  [ - <cf_route_config> ... ]
-```
 
-### `<cf_route_config>`
-```yaml
-Host: <string>
-Domain: <string>
+# Watchtower considers routes to be a part of an apps definition. The routes
+# section can be omitted, and will be interpreted as "app should have no routes"
+routes:
+  # Route strings must be of the form <hostname>.<domain> and not deviate. The
+  # following would be a valid route: my-cool-app.app.cloudfoundry
+  # where the hostname would be interpreted to be "my-cool-app" and the domain
+  # as "app.cloudfoundry".
+  [ - <string> ... ]
 ```
 
 ### `<cf_space_config>`
