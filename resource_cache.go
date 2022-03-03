@@ -41,16 +41,47 @@ func (cache *CFResourceCache) Refresh() {
 	}
 	// Parallelize calls to refreshXCache using goroutines and a sync.WaitGroup
 	var waitgroup sync.WaitGroup
-	var numRefreshFuncions = 5
+	var numRefreshFuncions = 6
 	waitgroup.Add(numRefreshFuncions)
 
 	go cache.Apps.refresh(&waitgroup)
 	go cache.Routes.refresh(&waitgroup)
 	go cache.RouteMappings.refresh(&waitgroup)
 	go cache.Domains.refresh(&waitgroup)
+	go cache.SharedDomains.refresh(&waitgroup)
 	go cache.Spaces.refresh(&waitgroup)
 
 	waitgroup.Wait()
+}
+
+// findRouteByURL returns a CF Route based on the Host+Domain, abstracting away the CF concept of shared vs private domains.
+func (cache *CFResourceCache) findRouteByURL(host, domain string) (cfclient.Route, bool) {
+	for _, route := range cache.Routes.routes {
+		if route.Host == host {
+			cfSharedDomain, ok1 := cache.SharedDomains.guidMap[route.DomainGuid]
+			cfPrivateDomain, ok2 := cache.Domains.guidMap[route.DomainGuid]
+			if !ok1 && !ok2 {
+				log.Printf("Domain lookup failed for GUID: %s", route.DomainGuid)
+				continue
+			}
+			if cfSharedDomain.Name == domain || cfPrivateDomain.Name == domain {
+				return route, true
+			}
+		}
+	}
+
+	// The route with the specified URL could not be found
+	return cfclient.Route{}, false
+}
+
+func (cache *CFResourceCache) findDomainNameByGuid(guid string) (string, bool) {
+	if domain, ok := cache.SharedDomains.guidMap[guid]; ok {
+		return domain.Name, true
+	}
+	if domain, ok := cache.Domains.guidMap[guid]; ok {
+		return domain.Name, true
+	}
+	return "", false
 }
 
 // AppCache holds the most recently scraped CF App information
