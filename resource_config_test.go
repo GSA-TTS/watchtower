@@ -13,10 +13,8 @@ apps:
       optional: true
     - name: third-app
       routes:
-        - host: third-app-host
-          domain: app.cloudfoundry
-        - host: third-app-second-route
-          domain: app.second.domain
+        - third-app-host.app.cloudfoundry
+        - third-app-second-route.app.second.domain
 spaces:
   enabled: true
   resources:
@@ -97,18 +95,18 @@ func TestLoadResourceConfigAppRoutes(t *testing.T) {
 
 	// Validate route details
 	route0 := routes[0]
-	if route0.Host != "third-app-host" {
+	if route0.Host() != "third-app-host" {
 		t.Fatalf("%s routes[0].Host incorrect. Found: %+v", app3.Name, route0)
 	}
-	if route0.Domain != "app.cloudfoundry" {
+	if route0.Domain() != "app.cloudfoundry" {
 		t.Fatalf("%s routes[0].Domain incorrect. Found: %+v", app3.Name, route0)
 	}
 
 	route1 := routes[1]
-	if route1.Host != "third-app-second-route" {
+	if route1.Host() != "third-app-second-route" {
 		t.Fatalf("%s routes[1].Host incorrect. Found: %+v", app3.Name, route1)
 	}
-	if route1.Domain != "app.second.domain" {
+	if route1.Domain() != "app.second.domain" {
 		t.Fatalf("%s routes[1].Domain incorrect. Found: %+v", app3.Name, route1)
 	}
 
