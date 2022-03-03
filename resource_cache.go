@@ -119,18 +119,6 @@ func (cache *AppCache) refresh(wg *sync.WaitGroup) {
 	cache.Valid = true
 }
 
-// LookupByGUID returns the requested V3App, and a bool indicating whether it was found in the cache.
-func (cache *AppCache) LookupByGUID(guid string) (cfclient.V3App, bool) {
-	elem, ok := cache.guidMap[guid]
-	return elem, ok
-}
-
-// LookupByName returns the requested V3App, and a bool indicating whether it was found in the cache.
-func (cache *AppCache) LookupByName(name string) (cfclient.V3App, bool) {
-	elem, ok := cache.guidMap[name]
-	return elem, ok
-}
-
 // RouteCache holds the most recently scraped CF Route information
 type RouteCache struct {
 	// RouteCache.Valid will be 'true' when the cache was successfully refreshed and 'false' if the last refresh failed.
@@ -267,18 +255,6 @@ func (cache *DomainCache) refresh(wg *sync.WaitGroup) {
 	cache.Valid = true
 }
 
-// LookupByGUID returns the requested Domain, and a bool indicating whether it was found in the cache.
-func (cache *DomainCache) LookupByGUID(guid string) (cfclient.Domain, bool) {
-	elem, ok := cache.guidMap[guid]
-	return elem, ok
-}
-
-// LookupByName returns the requested Domain, and a bool indicating whether it was found in the cache.
-func (cache *DomainCache) LookupByName(name string) (cfclient.Domain, bool) {
-	elem, ok := cache.nameMap[name]
-	return elem, ok
-}
-
 // SpaceCache holds the most recently scraped CF Space information
 type SpaceCache struct {
 	// SpaceCache.Valid will be 'true' when the cache was successfully refreshed and 'false' if the last refresh failed.
@@ -312,16 +288,4 @@ func (cache *SpaceCache) refresh(wg *sync.WaitGroup) {
 	cache.guidMap = guidMap
 	cache.nameMap = nameMap
 	cache.Valid = true
-}
-
-// LookupByGUID returns the requested Space, and a bool indicating whether it was found in the cache.
-func (cache *SpaceCache) LookupByGUID(guid string) (cfclient.Space, bool) {
-	elem, ok := cache.guidMap[guid]
-	return elem, ok
-}
-
-// LookupByName returns the requested Space, and a bool indicating whether it was found in the cache.
-func (cache *SpaceCache) LookupByName(name string) (cfclient.Space, bool) {
-	elem, ok := cache.guidMap[name]
-	return elem, ok
 }
