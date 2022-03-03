@@ -38,6 +38,16 @@ type AppEntry struct {
 	Routes   []RouteEntry `yaml:"routes"`
 }
 
+// ContainsRoute returns true if the AppEntry contains the specified route, false otherwise
+func (a *AppEntry) ContainsRoute(route string) bool {
+	for _, routeEntry := range a.Routes {
+		if string(routeEntry) == route {
+			return true
+		}
+	}
+	return false
+}
+
 // SpaceConfig represents the Watchtower 'spaces' config file section.
 type SpaceConfig struct {
 	Enabled bool         `yaml:"enabled"`
@@ -53,10 +63,12 @@ type SpaceEntry struct {
 // RouteEntry represents the allowed values for each entry under 'routes' within 'apps'
 type RouteEntry string
 
+// Host extracts the hostname from the given Route
 func (r *RouteEntry) Host() string {
 	return strings.SplitN(string(*r), ".", 2)[0]
 }
 
+// Domain extracts the domain from the given Route
 func (r *RouteEntry) Domain() string {
 	return strings.SplitN(string(*r), ".", 2)[1]
 }
