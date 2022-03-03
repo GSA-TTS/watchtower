@@ -84,7 +84,7 @@ func (cache *CFResourceCache) findRouteByURL(host, domain string) (cfclient.Rout
 	return cfclient.Route{}, false
 }
 
-func (cache *CFResourceCache) findDomainNameByGuid(guid string) (string, bool) {
+func (cache *CFResourceCache) findDomainNameByGUID(guid string) (string, bool) {
 	if domain, ok := cache.SharedDomains.guidMap[guid]; ok {
 		return domain.Name, true
 	}
