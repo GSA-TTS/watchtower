@@ -98,9 +98,53 @@ func (detector *Detector) Validate() {
 func (detector *Detector) validateAppRoutes(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	for _, mapping := range detector.cache.RouteMappings.guidMap {
-		log.Printf("%+v\n\n", mapping)
+	var cache = &detector.cache
+
+	if !cache.isValid() {
+		log.Println("Invalid cache detected. Skipping routes check.")
+		failedRouteChecks.Inc()
+		return
 	}
+
+	var missingRoutes []string
+	for _, app := range detector.config.Apps {
+		for _, route := range app.Routes {
+			_, ok := detector.cache.findRouteByURL(route.Host(), route.Domain())
+			if !ok {
+				missingRoutes = append(missingRoutes, app.Name+":"+route.Host()+"."+route.Domain())
+			}
+		}
+	}
+
+	var unknownRoutes []string
+	for _, mapping := range cache.RouteMappings.routeMappings {
+		app, route, domainName, err := cache.getMappingResources(mapping.Guid)
+		if err != nil {
+			continue
+		}
+
+		// configApp is the AppEntry for this V3App
+		configApp, ok := detector.config.Apps[app.Name]
+		if !ok {
+			// The app is an 'unknown' app. There is a route mapped to it, but it is not found in the config.
+			continue
+		}
+
+		var routeURL = route.Host + "." + domainName
+		if !configApp.ContainsRoute(routeURL) {
+			unknownRoutes = append(unknownRoutes, app.Name+":"+routeURL)
+		}
+	}
+
+	if len(unknownRoutes) != 0 {
+		log.Printf("Unknown Routes Detected: %s", unknownRoutes)
+	}
+	if len(missingRoutes) != 0 {
+		log.Printf("Missing Routes Detected: %s", missingRoutes)
+	}
+	totalUnknownRoutes.Set(float64(len(unknownRoutes)))
+	totalMissingRoutes.Set(float64(len(missingRoutes)))
+	successfulRouteChecks.Inc()
 }
 
 // ValidateApps performs CF App resource validation
