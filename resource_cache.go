@@ -38,6 +38,7 @@ func (cache *CFResourceCache) Refresh() {
 	// Ensure the client is still valid (refresh token expires periodically)
 	if time.Since(clientCreatedAt).Hours() > clientAgeLimitHours {
 		client = NewCFClient()
+		clientCreatedAt = time.Now()
 		log.Println("Successfully refreshed CF HTTP Client")
 	}
 	// Parallelize calls to refreshXCache using goroutines and a sync.WaitGroup
