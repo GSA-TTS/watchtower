@@ -9,12 +9,17 @@ apps:
   enabled: true
   resources:
     - name: my-cool-app
-    - name: another-app
+    - name: optional-app-example
       optional: true
-    - name: third-app
+    - name: app-with-route
       routes:
-        - third-app-host.app.cloudfoundry
-        - third-app-second-route.app.second.domain
+        - app-hostname.app.cloudfoundry
+    - name: optional-app-with-routes
+      optional: true
+      routes:
+        - hostname1.first.domain
+        - hostname2.first.domain
+        - hostname3.second.domain
 spaces:
   enabled: true
   resources:
@@ -37,27 +42,29 @@ func TestLoadResourceConfigAppNames(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
 	apps := conf.Data.AppConfig.Apps
-	if len(apps) != 3 {
+	if len(apps) != 4 {
 		t.Fatalf("Number of apps found was incorrect. Found: %d Details: %+v", len(apps), apps)
 	}
 
 	if app0Name, expected := apps[0].Name, "my-cool-app"; app0Name != expected {
 		t.Fatalf("%s name incorrect. Found: %s", expected, app0Name)
 	}
-	if app1Name, expected := apps[1].Name, "another-app"; app1Name != expected {
+	if app1Name, expected := apps[1].Name, "optional-app-example"; app1Name != expected {
 		t.Fatalf("%s name incorrect. Found: %s", expected, app1Name)
 	}
-	if app2Name, expected := apps[2].Name, "third-app"; app2Name != expected {
+	if app2Name, expected := apps[2].Name, "app-with-route"; app2Name != expected {
 		t.Fatalf("%s name incorrect. Found: %s", expected, app2Name)
 	}
-
+	if app3Name, expected := apps[3].Name, "optional-app-with-routes"; app3Name != expected {
+		t.Fatalf("%s name incorrect. Found: %s", expected, app3Name)
+	}
 }
 
 func TestLoadResourceConfigOptionalApp(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
 	apps := conf.Data.AppConfig.Apps
-	if len(apps) != 3 {
+	if len(apps) != 4 {
 		t.Fatalf("Number of apps found was incorrect. Found: %d Details: %+v", len(apps), apps)
 	}
 
@@ -70,13 +77,16 @@ func TestLoadResourceConfigOptionalApp(t *testing.T) {
 	if app2 := apps[2]; app2.Optional != false {
 		t.Fatalf("%s optional incorrect", app2.Name)
 	}
+	if app3 := apps[3]; app3.Optional != true {
+		t.Fatalf("%s optional incorrect", app3.Name)
+	}
 }
 
 func TestLoadResourceConfigAppRoutes(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
 	apps := conf.Data.AppConfig.Apps
-	if len(apps) != 3 {
+	if len(apps) != 4 {
 		t.Fatalf("Number of apps found was incorrect. Found: %d Details: %+v", len(apps), apps)
 	}
 
@@ -89,24 +99,42 @@ func TestLoadResourceConfigAppRoutes(t *testing.T) {
 	}
 	app3 := apps[2]
 	routes := app3.Routes
-	if len(routes) != 2 {
+	if len(routes) != 1 {
 		t.Fatalf("Incorrect number of routes for %s. Details: %+v", app3.Name, routes)
+	}
+	if routes[0] != "app-hostname.app.cloudfoundry" {
+		t.Fatalf("Incorrect route for app %s, found %s", app3.Name, routes[0])
 	}
 
 	// Validate route details
 	route0 := routes[0]
-	if route0.Host() != "third-app-host" {
+	if route0.Host() != "app-hostname" {
 		t.Fatalf("%s routes[0].Host incorrect. Found: %+v", app3.Name, route0)
 	}
 	if route0.Domain() != "app.cloudfoundry" {
 		t.Fatalf("%s routes[0].Domain incorrect. Found: %+v", app3.Name, route0)
 	}
 
+	app4 := apps[3]
+	routes = app4.Routes
+	if len(routes) != 3 {
+		t.Fatalf("Incorrect number of routes for %s. Details: %+v", app4.Name, routes)
+	}
+	if routes[0] != "hostname1.first.domain" {
+		t.Fatalf("Incorrect route1 for app %s, found %s", app4.Name, routes[0])
+	}
+	if routes[1] != "hostname2.first.domain" {
+		t.Fatalf("Incorrect route2 for app %s, found %s", app4.Name, routes[1])
+	}
+	if routes[2] != "hostname3.second.domain" {
+		t.Fatalf("Incorrect route3 for app %s, found %s", app4.Name, routes[1])
+	}
+
 	route1 := routes[1]
-	if route1.Host() != "third-app-second-route" {
+	if route1.Host() != "hostname2" {
 		t.Fatalf("%s routes[1].Host incorrect. Found: %+v", app3.Name, route1)
 	}
-	if route1.Domain() != "app.second.domain" {
+	if route1.Domain() != "first.domain" {
 		t.Fatalf("%s routes[1].Domain incorrect. Found: %+v", app3.Name, route1)
 	}
 
