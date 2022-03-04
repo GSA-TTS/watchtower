@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -17,6 +16,7 @@ const DetectionInterval = time.Minute * time.Duration(5)
 // and those in the provided config allow list.
 type Detector struct {
 	client   *cfclient.Client
+	cache    CFResourceCache
 	config   Config
 	interval int
 }
@@ -33,8 +33,11 @@ func NewDetector(configFile *string, validationInterval int) Detector {
 	// If secret values are ever added to config, they should be masked in configString.
 	configString = string(data)
 
+	resourceCache := NewCFResourceCache()
+
 	detector := Detector{
 		client:   NewCFClient(),
+		cache:    resourceCache,
 		config:   resourceConfig,
 		interval: validationInterval,
 	}
@@ -54,8 +57,24 @@ func (detector *Detector) start() {
 	ticker := time.NewTicker(interval)
 	log.Printf("Starting Detector with refresh interval: %ds", int64(interval.Seconds()))
 	for range ticker.C {
+		detector.cache.Refresh()
 		detector.Validate()
 	}
+}
+
+func (detector *Detector) enabledValidationFunctions() []func(*sync.WaitGroup) {
+	validationFunctions := []func(*sync.WaitGroup){}
+
+	if detector.config.Data.AppConfig.Enabled {
+		validationFunctions = append(validationFunctions, detector.validateApps)
+		validationFunctions = append(validationFunctions, detector.validateAppRoutes)
+	}
+
+	if detector.config.Data.SpaceConfig.Enabled {
+		validationFunctions = append(validationFunctions, detector.validateSpaces)
+	}
+
+	return validationFunctions
 }
 
 // Validate queries the CF API and validates responses against the Watchtower config.
@@ -64,10 +83,7 @@ func (detector *Detector) Validate() {
 	// Parallelize calls to validateX using goroutines and a sync.WaitGroup
 	var waitgroup sync.WaitGroup
 
-	validationFunctions := []func(*sync.WaitGroup){
-		detector.validateApps,
-		detector.validateSpaces,
-	}
+	validationFunctions := detector.enabledValidationFunctions()
 
 	waitgroup.Add(len(validationFunctions))
 
@@ -78,47 +94,80 @@ func (detector *Detector) Validate() {
 	waitgroup.Wait()
 }
 
-func (detector *Detector) getDeployedApps() (map[string]cfclient.V3App, error) {
-	// Retrieve the app data from cloud.gov
-	deployedApps, err := detector.client.ListV3AppsByQuery(url.Values{})
-	if err != nil {
-		return nil, err
+// ValidateAppRoutes performs CF App Route resource validation
+func (detector *Detector) validateAppRoutes(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	var cache = &detector.cache
+
+	if !cache.isValid() {
+		log.Println("Invalid cache detected. Skipping routes check.")
+		failedRouteChecks.Inc()
+		return
 	}
 
-	// Convert the app data to a map so that lookups can be performed without iterating over the data every time
-	deployedAppMap := make(map[string]cfclient.V3App)
-	for _, app := range deployedApps {
-		deployedAppMap[app.Name] = app
+	var missingRoutes []string
+	for _, app := range detector.config.Apps {
+		for _, route := range app.Routes {
+			_, ok := detector.cache.findRouteByURL(route.Host(), route.Domain())
+			if !ok {
+				missingRoutes = append(missingRoutes, app.Name+":"+route.Host()+"."+route.Domain())
+			}
+		}
 	}
-	return deployedAppMap, nil
+
+	var unknownRoutes []string
+	for _, mapping := range cache.RouteMappings.routeMappings {
+		app, route, domainName, err := cache.getMappingResources(mapping.Guid)
+		if err != nil {
+			continue
+		}
+
+		// configApp is the AppEntry for this V3App
+		configApp, ok := detector.config.Apps[app.Name]
+		if !ok {
+			// The app is an 'unknown' app. There is a route mapped to it, but it is not found in the config.
+			continue
+		}
+
+		var routeURL = route.Host + "." + domainName
+		if !configApp.ContainsRoute(routeURL) {
+			unknownRoutes = append(unknownRoutes, app.Name+":"+routeURL)
+		}
+	}
+
+	if len(unknownRoutes) != 0 {
+		log.Printf("Unknown Routes Detected: %s", unknownRoutes)
+	}
+	if len(missingRoutes) != 0 {
+		log.Printf("Missing Routes Detected: %s", missingRoutes)
+	}
+	totalUnknownRoutes.Set(float64(len(unknownRoutes)))
+	totalMissingRoutes.Set(float64(len(missingRoutes)))
+	successfulRouteChecks.Inc()
 }
 
 // ValidateApps performs CF App resource validation
 func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if !detector.config.Data.AppConfig.Enabled {
-		return
-	}
-
-	deployedApps, err := detector.getDeployedApps()
-	if err != nil {
-		log.Printf("ERROR in ListApps() request: %s. Skipping check.", err)
+	if !detector.cache.Apps.Valid {
+		log.Println("Invalid app cache detected. Skipping check.")
 		failedAppChecks.Inc()
 		return
 	}
 
 	var unknownApps []string
-	for _, deployedApp := range deployedApps {
-		if _, ok := detector.config.Apps[deployedApp.Name]; !ok {
-			unknownApps = append(unknownApps, deployedApp.Name)
+	for name, _ := range detector.cache.Apps.nameMap {
+		if _, ok := detector.config.Apps[name]; !ok {
+			unknownApps = append(unknownApps, name)
 		}
 	}
 
 	var missingApps []string
-	for _, expectedApp := range detector.config.Apps {
-		if _, ok := deployedApps[expectedApp.Name]; !ok && !expectedApp.Optional {
-			missingApps = append(missingApps, expectedApp.Name)
+	for name, expectedApp := range detector.config.Apps {
+		if _, ok := detector.cache.Apps.nameMap[name]; !ok && !expectedApp.Optional {
+			missingApps = append(missingApps, name)
 		}
 	}
 
@@ -139,22 +188,17 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if !detector.config.Data.SpaceConfig.Enabled {
-		return
-	}
-
-	visibleSpaces, err := detector.client.ListSpacesByQuery(url.Values{})
-	if err != nil {
-		log.Printf("ERROR in ListSpaces request: %s. Skipping check.", err)
+	if !detector.cache.Spaces.Valid {
+		log.Println("Invalid space cache detected. Skipping check.")
 		failedSpaceChecks.Inc()
 		return
 	}
 
 	var spaceSSHViolations float64
 
-	for _, space := range visibleSpaces {
-		if spaceEntry, ok := detector.config.Spaces[space.Name]; ok && space.AllowSSH != spaceEntry.AllowSSH {
-			log.Printf("Misconfigured SSH access detected for space: %s. SSH access enabled: %v", space.Name, space.AllowSSH)
+	for name, space := range detector.cache.Spaces.nameMap {
+		if spaceEntry, ok := detector.config.Spaces[name]; ok && space.AllowSSH != spaceEntry.AllowSSH {
+			log.Printf("Misconfigured SSH access detected for space: %s. SSH access enabled: %v", name, space.AllowSSH)
 			spaceSSHViolations++
 		}
 	}

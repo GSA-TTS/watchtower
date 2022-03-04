@@ -43,6 +43,18 @@ var (
 		Name:      "success_total",
 		Help:      "Number of times the config check for Spaces has succeeded",
 	})
+	failedRouteChecks = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: "route_checks",
+		Name:      "failed_total",
+		Help:      "Number of times the config refresh for Routes has failed for any reason",
+	})
+	successfulRouteChecks = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: "route_checks",
+		Name:      "success_total",
+		Help:      "Number of times the config refresh for Routes has succeeded",
+	})
 
 	// Counters for unknown/missing/misconfigured resources
 	totalUnknownApps = promauto.NewGauge(prometheus.GaugeOpts{
@@ -63,6 +75,19 @@ var (
 		Subsystem: "ssh",
 		Name:      "space_misconfiguration_total",
 		Help:      "Number of Spaces that have misconfigured SSH access settings",
+	})
+
+	totalUnknownRoutes = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: "unknown",
+		Name:      "app_routes_total",
+		Help:      "Number of Routes deployed that are not in the allowed config file (config.yaml)",
+	})
+	totalMissingRoutes = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: "missing",
+		Name:      "app_routes_total",
+		Help:      "Number of Routes in the provided config file that are not deployed",
 	})
 )
 

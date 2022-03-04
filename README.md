@@ -1,3 +1,6 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/18f/watchtower)](https://goreportcard.com/report/github.com/18f/watchtower)
+![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)
+
 # Watchtower
 Watchtower is a drift-detection app for Cloud Foundry. It can be run anywhere
 that it will be able to reach the Cloud Controller API, meaning it doesn't
@@ -7,9 +10,14 @@ Watchtower does what any real-life watchtower would do -- it observes an area
 supposed to, it will communicate that to the authorities (a Prometheus server).
 
 ## Features
-* Detect unknown apps deployed to Cloud Foundry
-* Detect missing apps *not* deployed to Cloud Foundry, but should be
-* Detect SSH access misconfigurations for CF Spaces
+* Detect unknown resources deployed to Cloud Foundry
+* Detect missing resources *not* deployed to Cloud Foundry, but should be
+* Detect SSH access misconfigurations
+
+### Supported Resource Types
+* Apps
+* Routes
+* Spaces
 
 ## How it works
 Watchtower reads in a `config.yaml` file that contains an allowed list of Cloud
@@ -58,6 +66,10 @@ resources of that type from the included space, and thus need to be reflected
 in the config file provided to Watchtower to avoid false positives due to
 "unknown" resources showing up.
 
+### Using a Forward Proxy
+Running watchtower behind a forward proxy is as simple as setting the
+`HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables.
+
 ## Watchtower Config
 Generic placeholder definitions:
 * `<boolean>`: a boolean that can take the values `true` or `false`
@@ -77,7 +89,7 @@ apps:
   [ enabled: <boolean> | default = false ]
 
   # List of CF Apps to monitor
-  cf_apps:
+  resources:
     [ - <cf_app_config> ... ]
 
 spaces:
@@ -91,7 +103,7 @@ spaces:
   # entries found here. E.g. listing dev, test, and prod spaces here, but only
   # giving Watchtower auditor permissions on the dev space would result in 
   # monitoring only the dev space.
-  cf_spaces:
+  resources:
     [ - <cf_space_config> ... ]
 ```
 
@@ -101,6 +113,15 @@ name: <string>
 # Whether the app will be marked as "missing" if it is not observed. Apps
 # marked as optional will never be marked as missing or unknown.
 [optional: <bool> | default = false]
+
+# Watchtower considers routes to be a part of an apps definition. The routes
+# section can be omitted, and will be interpreted as "app should have no routes"
+routes:
+  # Route strings must be of the form <hostname>.<domain> and not deviate. The
+  # following would be a valid route: my-cool-app.app.cloudfoundry
+  # where the hostname would be interpreted to be "my-cool-app" and the domain
+  # as "app.cloudfoundry".
+  [ - <string> ... ]
 ```
 
 ### `<cf_space_config>`
@@ -128,3 +149,5 @@ The following table includes all application-specific prometheus metrics that ar
 | `watchtower_unknown_apps_total` | Gauge | Number of Apps deployed that are not in the allowed config file |
 | `watchtower_missing_apps_total` | Gauge | Number of Apps in the allowed config file that are not deployed to Cloud Foundry |
 | `watchtower_ssh_space_misconfiguration_total` | Gauge | Number of spaces visible to Watchtower with SSH access that differs from the value in the config |
+| `watchtower_unknown_app_route_total` | Gauge | Number of App Routes visible to Watchtower that differ from the values in the config |
+| `watchtower_missing_app_route_total` | Gauge | Number of App Routes in the allowed config file that are not deployed to Cloud Foundry |

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -12,37 +13,64 @@ import (
 // environment.
 type Config struct {
 	Data   YAMLConfig
-	Apps   map[string]AppEntry
-	Spaces map[string]SpaceEntry
+	Apps   map[string]AppEntry   // AppName -> AppEntry
+	Spaces map[string]SpaceEntry // SpaceName -> SpaceEntry
 }
 
-// YAMLConfig is the desired resource configuration to monitor with Watchtower
+// Config file definition begins here
+
+// Top-level keys
 type YAMLConfig struct {
 	AppConfig   AppConfig   `yaml:"apps"`
 	SpaceConfig SpaceConfig `yaml:"spaces"`
 }
 
-// AppConfig represents the Watchtower app_config config file section.
+// Allowed values under 'apps' (a top-level key)
 type AppConfig struct {
 	Enabled bool       `yaml:"enabled"`
-	Apps    []AppEntry `yaml:"cf_apps"`
+	Apps    []AppEntry `yaml:"resources"`
 }
 
-// AppEntry represents the Watchtower
+// Allowed values under 'resources' section of 'apps'
 type AppEntry struct {
-	Name     string `yaml:"name"`
-	Optional bool   `yaml:"optional"`
+	Name     string       `yaml:"name"`
+	Optional bool         `yaml:"optional"`
+	Routes   []RouteEntry `yaml:"routes"`
 }
 
+// ContainsRoute returns true if the AppEntry contains the specified route, false otherwise
+func (a *AppEntry) ContainsRoute(route string) bool {
+	for _, routeEntry := range a.Routes {
+		if string(routeEntry) == route {
+			return true
+		}
+	}
+	return false
+}
+
+// SpaceConfig represents the Watchtower 'spaces' config file section.
 type SpaceConfig struct {
 	Enabled bool         `yaml:"enabled"`
-	Spaces  []SpaceEntry `yaml:"cf_spaces"`
+	Spaces  []SpaceEntry `yaml:"resources"`
 }
 
-// SpaceEntry represents a Cloud Foundry Space config entry
+// Allowed values under 'resources' section of 'spaces'
 type SpaceEntry struct {
 	Name     string `yaml:"name"`
 	AllowSSH bool   `yaml:"allow_ssh"`
+}
+
+// RouteEntry represents the allowed values for each entry under 'routes' within 'apps'
+type RouteEntry string
+
+// Host extracts the hostname from the given Route
+func (r *RouteEntry) Host() string {
+	return strings.SplitN(string(*r), ".", 2)[0]
+}
+
+// Domain extracts the domain from the given Route
+func (r *RouteEntry) Domain() string {
+	return strings.SplitN(string(*r), ".", 2)[1]
 }
 
 // LoadResourceConfig reads config.yaml and parses it into a ResourceConfig. If
