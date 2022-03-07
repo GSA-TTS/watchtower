@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -99,8 +100,45 @@ var (
 	})
 )
 
+// configHandler shows the currently loaded config file
 func configHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, configString)
+}
+
+// healthHandler attempts to determine the health of Watchtower by checking whether the http client can
+// successfully hit the CloudController API, and whether metrics are successfully being served.
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	resp := make(map[string]string)
+	resp["message"] = "Healthy"
+
+	// Check responses for errors
+	watchtowerResp, watchtowerErr := http.Get("http://localhost:" + bindPort + "/metrics")
+	if watchtowerErr != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		resp["message"] = watchtowerErr.Error()
+	} else if _, clientErr := client.GetInfo(); clientErr != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		resp["message"] = clientErr.Error()
+	}
+
+	// Clean up and write the response
+	if watchtowerErr == nil {
+		// There was no error in the call to /metrics, so the response body must be closed
+		err := watchtowerResp.Body.Close()
+		if err != nil {
+			log.Fatalf("Error closing response body. Err: %s", err)
+		}
+	}
+	jsonResp, err := json.Marshal(resp)
+	if err != nil {
+		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+	}
+	_, err = w.Write(jsonResp)
+	if err != nil {
+		log.Fatalf("Error writing response. Err: %s", err)
+	}
+	return
 }
 
 func main() {
@@ -109,5 +147,7 @@ func main() {
 
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/config", configHandler)
-	log.Fatal(http.ListenAndServe(":"+ReadPortFromEnv(), nil))
+	http.HandleFunc("/health", healthHandler)
+	bindPort = ReadPortFromEnv()
+	log.Fatal(http.ListenAndServe(":"+bindPort, nil))
 }
