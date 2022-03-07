@@ -1,9 +1,20 @@
+# Example Config to demonstrate configuration options
 ---
 apps:
   enabled: true
   resources:
     - name: my-cool-app
-    - name: another-app
+    - name: optional-app-example
+      optional: true
+    - name: app-with-route
+      routes:
+        - app-hostname.app.cloudfoundry
+    - name: optional-app-with-routes
+      optional: true
+      routes:
+        - hostname1.first.domain
+        - hostname2.first.domain
+        - hostname3.second.domain
 spaces:
   enabled: true
   resources:
