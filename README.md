@@ -139,6 +139,7 @@ allow_ssh: <boolean> | default = false
 | --- | --- |
 | `/metrics` | Prometheus-style metrics endpoint containing all Watchtower metrics |
 | `/config` | The current Watchtower config |
+| `/health` | Health monitoring endping. Non-200 response indicates an unhealthy Watchtower node |
 
 ## Exported Application Metrics
 The following table includes all application-specific prometheus metrics that are exported
