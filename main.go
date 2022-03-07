@@ -116,10 +116,12 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	watchtowerResp, watchtowerErr := http.Get("http://localhost:" + bindPort + "/metrics")
 	if watchtowerErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		resp["message"] = watchtowerErr.Error()
+		resp["message"] = "Failed scraping Watchtower /metrics endpoint. See logs for details."
+		log.Printf("Error reading Watchtower metric data during health check: %v", watchtowerErr)
 	} else if _, clientErr := client.GetInfo(); clientErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		resp["message"] = clientErr.Error()
+		resp["message"] = "Error contacting the Cloud Controller API. See logs for details."
+		log.Printf("Error reading Watchtower metric data during health check: %v", clientErr)
 	}
 
 	// Clean up and write the response
