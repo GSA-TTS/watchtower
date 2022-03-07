@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -13,9 +14,16 @@ import (
 
 const namespace = "watchtower"
 
+// Configuration Flags
 var configPath = flag.String("config", "config.yaml", "Path to configuration file.")
 var validationInterval = flag.Int("interval", int(DetectionInterval.Seconds()), "The interval (in seconds) that Watchtower will run validation checks and update exported metrics")
+
+// Global Settings
+var client = NewCFClient()
+var clientCreatedAt = time.Now()
+var clientAgeLimitHours = 8.0
 var configString = ""
+var bindPort = "8080"
 
 var (
 	// Counters for failed/successful validation checks

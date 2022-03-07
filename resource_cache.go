@@ -10,10 +10,6 @@ import (
 	"github.com/cloudfoundry-community/go-cfclient"
 )
 
-var client = NewCFClient()
-var clientCreatedAt = time.Now()
-var clientAgeLimitHours = 8.0
-
 // CFResourceCache will contain the most recently scraped resource information
 // about the Cloud Foundry environment being monitored. Various resource types
 // can be searched for by their unique identifiers using provided lookup functions.
