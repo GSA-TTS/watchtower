@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"sort"
 	"sync"
 	"time"
 
@@ -137,9 +138,11 @@ func (detector *Detector) validateAppRoutes(wg *sync.WaitGroup) {
 	}
 
 	if len(unknownRoutes) != 0 {
+		sort.Strings(unknownRoutes)
 		log.Printf("Unknown Routes Detected: %s", unknownRoutes)
 	}
 	if len(missingRoutes) != 0 {
+		sort.Strings(missingRoutes)
 		log.Printf("Missing Routes Detected: %s", missingRoutes)
 	}
 	totalUnknownRoutes.Set(float64(len(unknownRoutes)))
@@ -172,9 +175,11 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	}
 
 	if len(unknownApps) != 0 {
+		sort.Strings(unknownApps)
 		log.Printf("Unknown Apps Detected: %s", unknownApps)
 	}
 	if len(missingApps) != 0 {
+		sort.Strings(missingApps)
 		log.Printf("Missing Apps Detected: %s", missingApps)
 	}
 	totalUnknownApps.Set(float64(len(unknownApps)))
