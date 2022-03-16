@@ -4,6 +4,14 @@ if [ -z "$1" ]; then
     echo "Usage: ./build-release <version-number>"
     exit
 fi
+
+if [[ ! "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Version number looks incorrect"
+    exit 1
+else
+    echo "Creating release artifacts with version number: $1"
+fi
+
 version="$1"
 
 package="github.com/18f/watchtower"
