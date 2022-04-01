@@ -141,6 +141,11 @@ allow_ssh: <boolean> | default = false
 | `/config` | The current Watchtower config |
 | `/health` | Health monitoring endping. Non-200 response indicates an unhealthy Watchtower node |
 
+### Health Checks
+When using Watchtower's `/health` endpoint to check the health of a node, make sure the timeout for the health-check is
+set to at least 3 seconds. Why? Watchtower makes a `Get` request to the cloud controller API during health checks, so setting
+the timeout for the Watchtower health-check too low may cause it to timeout before Watchtower has a response from the cloud controller.
+
 ## Exported Application Metrics
 The following table includes all application-specific prometheus metrics that are exported
 
