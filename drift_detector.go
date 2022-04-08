@@ -161,7 +161,7 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	}
 
 	var unknownApps []string
-	for name, _ := range detector.cache.Apps.nameMap {
+	for name := range detector.cache.Apps.nameMap {
 		if _, ok := detector.config.Apps[name]; !ok {
 			unknownApps = append(unknownApps, name)
 		}
