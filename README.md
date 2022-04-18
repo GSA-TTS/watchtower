@@ -3,6 +3,7 @@
 # Watchtower
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/18f/watchtower)](https://goreportcard.com/report/github.com/18f/watchtower)
+[![Maintainability](https://api.codeclimate.com/v1/badges/248e347811c1f1108868/maintainability)](https://codeclimate.com/github/18F/watchtower/maintainability)
 ![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)
 
 Watchtower is a drift-detection app for Cloud Foundry. It can be run anywhere
