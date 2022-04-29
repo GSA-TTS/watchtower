@@ -18,8 +18,6 @@ linters:
     - revive  # Drop-in replacement of golint
     - tenv  # Detects using os.Setenv instead of t.Setenv since Go1.17
     - unconvert  # Remove unnecessary type conversions
-  disable:
-    - typecheck
 
 linters-settings:
   errcheck:  # Enabled by default
