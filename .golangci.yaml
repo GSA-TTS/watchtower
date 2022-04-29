@@ -31,4 +31,4 @@ linters-settings:
     min-complexity: 10
 
   gosimple:  # Enabled by default
-    go: "1.17"
+    go: "1.18"

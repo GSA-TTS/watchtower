@@ -1,6 +1,6 @@
 module github.com/18f/watchtower
 
-go 1.17
+go 1.18
 
 require (
 	github.com/cloudfoundry-community/go-cfclient v0.0.0-20211107003623-1d25c34ce45b
