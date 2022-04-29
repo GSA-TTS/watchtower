@@ -30,7 +30,8 @@ spaces:
     - name: prod
       allow_ssh: false`
 
-func TestLoadResourceConfigAppsEnabled(t *testing.T) {
+// TestAppsEnabled ensures that the 'enabled' option within the 'apps' block is set correctly.
+func TestAppsEnabled(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
 	if conf.Data.AppConfig.Enabled != true {
@@ -38,13 +39,21 @@ func TestLoadResourceConfigAppsEnabled(t *testing.T) {
 	}
 }
 
-func TestLoadResourceConfigAppNames(t *testing.T) {
+// TestAppsEnabled ensures that the 'enabled' option within the 'apps' block is set correctly.
+func TestNumberOfApps(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
 	apps := conf.Data.AppConfig.Apps
 	if len(apps) != 4 {
 		t.Fatalf("Number of apps found was incorrect. Found: %d Details: %+v", len(apps), apps)
 	}
+}
+
+// TestAppNames tests the app names that are found for the given config.
+func TestAppNames(t *testing.T) {
+	conf := LoadResourceConfig([]byte(basicConfig))
+
+	apps := conf.Data.AppConfig.Apps
 
 	if app0Name, expected := apps[0].Name, "my-cool-app"; app0Name != expected {
 		t.Fatalf("%s name incorrect. Found: %s", expected, app0Name)
@@ -60,13 +69,11 @@ func TestLoadResourceConfigAppNames(t *testing.T) {
 	}
 }
 
-func TestLoadResourceConfigOptionalApp(t *testing.T) {
+// TestOptionalApp tests the 'optional' setting within the 'resources' block of 'apps'.
+func TestOptionalApp(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
 	apps := conf.Data.AppConfig.Apps
-	if len(apps) != 4 {
-		t.Fatalf("Number of apps found was incorrect. Found: %d Details: %+v", len(apps), apps)
-	}
 
 	if app0 := apps[0]; app0.Optional != false {
 		t.Fatalf("%s optional incorrect", app0.Name)
@@ -82,13 +89,11 @@ func TestLoadResourceConfigOptionalApp(t *testing.T) {
 	}
 }
 
-func TestLoadResourceConfigAppRoutes(t *testing.T) {
+// TestNumberOfAppRoutes tests that the correct number of routes are found for the given config.
+func TestNumberOfAppRoutes(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
 	apps := conf.Data.AppConfig.Apps
-	if len(apps) != 4 {
-		t.Fatalf("Number of apps found was incorrect. Found: %d Details: %+v", len(apps), apps)
-	}
 
 	// Validate route lengths for each app
 	if app1, app1Routes := apps[0].Name, apps[0].Routes; len(app1Routes) != 0 {
@@ -97,50 +102,76 @@ func TestLoadResourceConfigAppRoutes(t *testing.T) {
 	if app2, app2Routes := apps[1].Name, apps[1].Routes; len(app2Routes) != 0 {
 		t.Fatalf("Incorrect number of routes for %s. Details: %+v", app2, app2Routes)
 	}
-	app3 := apps[2]
-	routes := app3.Routes
-	if len(routes) != 1 {
-		t.Fatalf("Incorrect number of routes for %s. Details: %+v", app3.Name, routes)
+	if app3, app3Routes := apps[2].Name, apps[2].Routes; len(app3Routes) != 1 {
+		t.Fatalf("Incorrect number of routes for %s. Details: %+v", app3, app3Routes)
 	}
-	if routes[0] != "app-hostname.app.cloudfoundry" {
-		t.Fatalf("Incorrect route for app %s, found %s", app3.Name, routes[0])
+	if app4, app4Routes := apps[3].Name, apps[3].Routes; len(app4Routes) != 3 {
+		t.Fatalf("Incorrect number of routes for %s. Details: %+v", app4, app4Routes)
 	}
-
-	// Validate route details
-	route0 := routes[0]
-	if route0.Host() != "app-hostname" {
-		t.Fatalf("%s routes[0].Host incorrect. Found: %+v", app3.Name, route0)
-	}
-	if route0.Domain() != "app.cloudfoundry" {
-		t.Fatalf("%s routes[0].Domain incorrect. Found: %+v", app3.Name, route0)
-	}
-
-	app4 := apps[3]
-	routes = app4.Routes
-	if len(routes) != 3 {
-		t.Fatalf("Incorrect number of routes for %s. Details: %+v", app4.Name, routes)
-	}
-	if routes[0] != "hostname1.first.domain" {
-		t.Fatalf("Incorrect route1 for app %s, found %s", app4.Name, routes[0])
-	}
-	if routes[1] != "hostname2.first.domain" {
-		t.Fatalf("Incorrect route2 for app %s, found %s", app4.Name, routes[1])
-	}
-	if routes[2] != "hostname3.second.domain" {
-		t.Fatalf("Incorrect route3 for app %s, found %s", app4.Name, routes[1])
-	}
-
-	route1 := routes[1]
-	if route1.Host() != "hostname2" {
-		t.Fatalf("%s routes[1].Host incorrect. Found: %+v", app3.Name, route1)
-	}
-	if route1.Domain() != "first.domain" {
-		t.Fatalf("%s routes[1].Domain incorrect. Found: %+v", app3.Name, route1)
-	}
-
 }
 
-func TestLoadResourceConfigEnvVar(t *testing.T) {
+// TestAppRoutes tests that the correct route (hostname+domain) are found for the given config.
+func TestAppRoutes(t *testing.T) {
+	conf := LoadResourceConfig([]byte(basicConfig))
+
+	apps := conf.Data.AppConfig.Apps
+
+	if apps[2].Routes[0] != "app-hostname.app.cloudfoundry" {
+		t.Fatalf("Incorrect route for app %s, found %s", apps[2].Name, apps[2].Routes[0])
+	}
+	if apps[3].Routes[0] != "hostname1.first.domain" {
+		t.Fatalf("Incorrect route1 for app %s, found %s", apps[4].Name, apps[4].Routes[0])
+	}
+	if apps[3].Routes[1] != "hostname2.first.domain" {
+		t.Fatalf("Incorrect route2 for app %s, found %s", apps[4].Name, apps[4].Routes[1])
+	}
+	if apps[3].Routes[2] != "hostname3.second.domain" {
+		t.Fatalf("Incorrect route3 for app %s, found %s", apps[4].Name, apps[4].Routes[1])
+	}
+}
+
+// TestRouteHost tests that the RouteEntry.Host() method pulls the correct hostname from the app routes.
+func TestRouteHost(t *testing.T) {
+	conf := LoadResourceConfig([]byte(basicConfig))
+	apps := conf.Data.AppConfig.Apps
+	app3, app4 := apps[2], apps[3]
+
+	if host := app3.Routes[0].Host(); host != "app-hostname" {
+		t.Fatalf("%s routes[0].Host incorrect. Found: %+v", app3.Name, host)
+	}
+	if host := app4.Routes[0].Host(); host != "hostname1" {
+		t.Fatalf("%s routes[0].Host incorrect. Found: %+v", app4.Name, host)
+	}
+	if host := app4.Routes[1].Host(); host != "hostname2" {
+		t.Fatalf("%s routes[1].Host incorrect. Found: %+v", app4.Name, host)
+	}
+	if host := app4.Routes[2].Host(); host != "hostname3" {
+		t.Fatalf("%s routes[2].Host incorrect. Found: %+v", app4.Name, host)
+	}
+}
+
+// TestRouteDomain tests that the RouteEntry.Domain() method pulls the correct domain from the app routes.
+func TestRouteDomain(t *testing.T) {
+	conf := LoadResourceConfig([]byte(basicConfig))
+	apps := conf.Data.AppConfig.Apps
+	app3, app4 := apps[2], apps[3]
+
+	if domain := app3.Routes[0].Domain(); domain != "app.cloudfoundry" {
+		t.Fatalf("%s routes[0].Domain incorrect. Found: %+v", app3.Name, domain)
+	}
+	if domain := app4.Routes[0].Domain(); domain != "first.domain" {
+		t.Fatalf("%s routes[0].Domain incorrect. Found: %+v", app4.Name, domain)
+	}
+	if domain := app4.Routes[1].Domain(); domain != "first.domain" {
+		t.Fatalf("%s routes[1].Domain incorrect. Found: %+v", app4.Name, domain)
+	}
+	if domain := app4.Routes[2].Domain(); domain != "second.domain" {
+		t.Fatalf("%s routes[2].Domain incorrect. Found: %+v", app4.Name, domain)
+	}
+}
+
+// TestConfigEnvVar tests that environment variables within the given config resolve correctly.
+func TestConfigEnvVar(t *testing.T) {
 	confData := `---
 apps:
   enabled: true
@@ -173,7 +204,8 @@ apps:
 	}
 }
 
-func TestLoadResourceConfigSpaceNames(t *testing.T) {
+// TestSpaceNames tests that the correct space names are found with the given config.
+func TestSpaceNames(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
 	spaces := conf.Data.SpaceConfig.Spaces
@@ -192,7 +224,8 @@ func TestLoadResourceConfigSpaceNames(t *testing.T) {
 	}
 }
 
-func TestLoadResourceConfigSpaceSSH(t *testing.T) {
+// TestSpaceSSH tests that the correct values for allow_ssh are found for the given config.
+func TestSpaceSSH(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
 	spaces := conf.Data.SpaceConfig.Spaces
