@@ -2,9 +2,13 @@ package main
 
 import (
 	"testing"
+	"time"
 )
 
 const basicConfig = `---
+global:
+  port: 8443
+  interval: 15s
 apps:
   enabled: true
   resources:
@@ -39,7 +43,7 @@ func TestAppsEnabled(t *testing.T) {
 	}
 }
 
-// TestAppsEnabled ensures that the 'enabled' option within the 'apps' block is set correctly.
+// TestNumberOfApps ensures that the correct number of apps are found within the given config.
 func TestNumberOfApps(t *testing.T) {
 	conf := LoadResourceConfig([]byte(basicConfig))
 
@@ -241,5 +245,67 @@ func TestSpaceSSH(t *testing.T) {
 	}
 	if space2, expected := spaces[2], false; space2.AllowSSH != expected {
 		t.Fatalf("Space %s allowssh incorrect", space2.Name)
+	}
+}
+
+// TestGlobalPort tests that the value of 'port' is set correctly within 'global'
+func TestGlobalPort(t *testing.T) {
+	// Default config
+	conf := LoadResourceConfig([]byte(basicConfig))
+	port := conf.Data.GlobalConfig.HTTPBindPort
+	if port != 8443 {
+		t.Fatalf("Port was not read correctly from config. Found: %v", port)
+	}
+
+	// Custom 8080
+	confData := `---
+global:
+  port: 8080`
+
+	conf = LoadResourceConfig([]byte(confData))
+	port = conf.Data.GlobalConfig.HTTPBindPort
+	if port != 8080 {
+		t.Fatalf("Port was not read correctly from config. Found: %v", port)
+	}
+
+	// No value specified
+	confData = `---
+global:`
+
+	conf = LoadResourceConfig([]byte(confData))
+	port = conf.Data.GlobalConfig.HTTPBindPort
+	if port != 0 {
+		t.Fatalf("Port was not read correctly from config. Found: %v", port)
+	}
+}
+
+// TestGlobalInterval tests that the value of 'interval' is set correctly within 'global'
+func TestGlobalInterval(t *testing.T) {
+	// Default config
+	conf := LoadResourceConfig([]byte(basicConfig))
+	interval := conf.Data.GlobalConfig.RefreshInterval
+	if interval != time.Second*15 {
+		t.Fatalf("Interval was not read correctly from config. Found: %v", interval)
+	}
+
+	// Custom 2h interval
+	confData := `---
+global:
+  interval: 2h`
+
+	conf = LoadResourceConfig([]byte(confData))
+	interval = conf.Data.GlobalConfig.RefreshInterval
+	if interval != time.Hour*2 {
+		t.Fatalf("Interval was not read correctly from config. Found: %v", interval)
+	}
+
+	// No value specified
+	confData = `---
+global:`
+
+	conf = LoadResourceConfig([]byte(confData))
+	interval = conf.Data.GlobalConfig.RefreshInterval
+	if interval != 0 {
+		t.Fatalf("Interval was not read correctly from config. Found: %v", interval)
 	}
 }
