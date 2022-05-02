@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -19,19 +20,26 @@ type Config struct {
 
 // Config file definition begins here
 
-// Top-level keys
+// YAMLConfig represents top-level keys
 type YAMLConfig struct {
-	AppConfig   AppConfig   `yaml:"apps"`
-	SpaceConfig SpaceConfig `yaml:"spaces"`
+	GlobalConfig GlobalConfig `yaml:"global"`
+	AppConfig    AppConfig    `yaml:"apps"`
+	SpaceConfig  SpaceConfig  `yaml:"spaces"`
 }
 
-// Allowed values under 'apps' (a top-level key)
+// GlobalConfig represents allowed values under the 'global' key
+type GlobalConfig struct {
+	HTTPBindPort    uint16        `yaml:"port"`
+	RefreshInterval time.Duration `yaml:"interval"`
+}
+
+// AppConfig represents allowed values under the 'apps' key
 type AppConfig struct {
 	Enabled bool       `yaml:"enabled"`
 	Apps    []AppEntry `yaml:"resources"`
 }
 
-// Allowed values under 'resources' section of 'apps'
+// AppEntry represents allowed values under the 'apps:resources' key
 type AppEntry struct {
 	Name     string       `yaml:"name"`
 	Optional bool         `yaml:"optional"`
@@ -54,7 +62,7 @@ type SpaceConfig struct {
 	Spaces  []SpaceEntry `yaml:"resources"`
 }
 
-// Allowed values under 'resources' section of 'spaces'
+// SpaceEntry represents allowed values under the 'spaces:resources' key
 type SpaceEntry struct {
 	Name     string `yaml:"name"`
 	AllowSSH bool   `yaml:"allow_ssh"`
