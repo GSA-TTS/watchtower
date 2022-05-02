@@ -140,7 +140,6 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatalf("Error writing response. Err: %s", err)
 	}
-	return
 }
 
 func main() {

@@ -66,12 +66,11 @@ func (cache *CFResourceCache) isValid() bool {
 func (cache *CFResourceCache) findRouteByURL(host, domain string) (cfclient.Route, bool) {
 	for _, route := range cache.Routes.routes {
 		if route.Host == host {
-			cfSharedDomain, ok1 := cache.SharedDomains.guidMap[route.DomainGuid]
-			cfPrivateDomain, ok2 := cache.Domains.guidMap[route.DomainGuid]
-			if !ok1 && !ok2 {
-				log.Printf("Domain lookup failed for GUID: %s", route.DomainGuid)
-				continue
-			}
+			// Look up the domain for this route
+			cfSharedDomain := cache.SharedDomains.guidMap[route.DomainGuid]
+			cfPrivateDomain := cache.Domains.guidMap[route.DomainGuid]
+
+			// Check if the route domain name is also a match - success case
 			if cfSharedDomain.Name == domain || cfPrivateDomain.Name == domain {
 				return route, true
 			}

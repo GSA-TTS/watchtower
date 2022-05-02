@@ -63,14 +63,16 @@ type SpaceEntry struct {
 // RouteEntry represents the allowed values for each entry under 'routes' within 'apps'
 type RouteEntry string
 
+const CFMaxRouteTokens = 2
+
 // Host extracts the hostname from the given Route
 func (r *RouteEntry) Host() string {
-	return strings.SplitN(string(*r), ".", 2)[0]
+	return strings.SplitN(string(*r), ".", CFMaxRouteTokens)[0]
 }
 
 // Domain extracts the domain from the given Route
 func (r *RouteEntry) Domain() string {
-	return strings.SplitN(string(*r), ".", 2)[1]
+	return strings.SplitN(string(*r), ".", CFMaxRouteTokens)[1]
 }
 
 // LoadResourceConfig reads config.yaml and parses it into a ResourceConfig. If

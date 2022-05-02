@@ -95,18 +95,9 @@ func (detector *Detector) Validate() {
 	waitgroup.Wait()
 }
 
-// ValidateAppRoutes performs CF App Route resource validation
-func (detector *Detector) validateAppRoutes(wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	var cache = &detector.cache
-
-	if !cache.isValid() {
-		log.Println("Invalid cache detected. Skipping routes check.")
-		failedRouteChecks.Inc()
-		return
-	}
-
+// getMissingRoutes will return a slice of strings representing missing routes in the form
+// <app_name>:<app_hostname>.<app_domain>
+func (detector *Detector) getMissingRoutes() []string {
 	var missingRoutes []string
 	for _, app := range detector.config.Apps {
 		for _, route := range app.Routes {
@@ -117,9 +108,15 @@ func (detector *Detector) validateAppRoutes(wg *sync.WaitGroup) {
 		}
 	}
 
+	return missingRoutes
+}
+
+// getUnknownRoutes will return a slice of strings representing unknown routes in the form
+// <app_name>:<app_hostname>.<app_domain>
+func (detector *Detector) getUnknownRoutes() []string {
 	var unknownRoutes []string
-	for _, mapping := range cache.RouteMappings.routeMappings {
-		app, route, domainName, err := cache.getMappingResources(mapping.Guid)
+	for _, mapping := range detector.cache.RouteMappings.routeMappings {
+		app, route, domainName, err := detector.cache.getMappingResources(mapping.Guid)
 		if err != nil {
 			continue
 		}
@@ -136,6 +133,24 @@ func (detector *Detector) validateAppRoutes(wg *sync.WaitGroup) {
 			unknownRoutes = append(unknownRoutes, app.Name+":"+routeURL)
 		}
 	}
+
+	return unknownRoutes
+}
+
+// ValidateAppRoutes performs CF App Route resource validation
+func (detector *Detector) validateAppRoutes(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	var cache = &detector.cache
+
+	if !cache.isValid() {
+		log.Println("Invalid cache detected. Skipping routes check.")
+		failedRouteChecks.Inc()
+		return
+	}
+
+	missingRoutes := detector.getMissingRoutes()
+	unknownRoutes := detector.getUnknownRoutes()
 
 	if len(unknownRoutes) != 0 {
 		sort.Strings(unknownRoutes)
@@ -161,7 +176,7 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	}
 
 	var unknownApps []string
-	for name, _ := range detector.cache.Apps.nameMap {
+	for name := range detector.cache.Apps.nameMap {
 		if _, ok := detector.config.Apps[name]; !ok {
 			unknownApps = append(unknownApps, name)
 		}
