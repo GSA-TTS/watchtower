@@ -47,6 +47,7 @@ page, or compile the go source yourself using `go build`.
 | --- | --- |
 | `-config` | Path to the configuration file |
 | `-interval` | The interval (in seconds) that Watchtower will run validation checks and update exported metrics |
+| `-help` | Print the Watchtower usage message. |
 
 ### Environment Variables
 The following environment variables are required for watchtower to interact with

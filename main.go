@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -17,10 +18,11 @@ const namespace = "watchtower"
 
 // Configuration Flags
 var configPath = flag.String("config", "config.yaml", "Path to configuration file.")
-var validationInterval = flag.Int("interval", int(DetectionInterval.Seconds()), "The interval (in seconds) that Watchtower will run validation checks and update exported metrics")
+var validationInterval = flag.Int("interval", int(DetectionInterval.Seconds()), "The interval (in seconds) that Watchtower will run validation checks and update exported metrics.")
+var help = flag.Bool("help", false, "Print usage instructions.")
 
 // Global Settings
-var client = NewCFClient()
+var client *cfclient.Client
 var clientCreatedAt = time.Now()
 var clientAgeLimitHours = 8.0
 var configString = ""
@@ -144,6 +146,11 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
+	if *help {
+		flag.PrintDefaults()
+		return
+	}
+	client = NewCFClient()
 	NewDetector(configPath, *validationInterval)
 
 	http.Handle("/metrics", promhttp.Handler())
