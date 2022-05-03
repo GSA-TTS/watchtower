@@ -1,4 +1,4 @@
-module github.com/18f/watchtower
+module github.com/18F/watchtower
 
 go 1.18
 
