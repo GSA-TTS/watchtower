@@ -1,13 +1,16 @@
-package main
+package config
 
 import (
-	"log"
+	"errors"
+	"net/url"
 	"os"
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
+
+const minRefreshInterval = time.Second * 10
 
 // Config is the top-level configuration type for watchtower. The Config type
 // should be the primary method of reading the expected state of a cloudfoundry
@@ -29,8 +32,9 @@ type YAMLConfig struct {
 
 // GlobalConfig represents allowed values under the 'global' key
 type GlobalConfig struct {
-	HTTPBindPort    uint16        `yaml:"port"`
-	RefreshInterval time.Duration `yaml:"interval"`
+	HTTPBindPort       uint16        `yaml:"port"`
+	RefreshInterval    time.Duration `yaml:"interval"`
+	CloudControllerURL string        `yaml:"cloud_controller_url"`
 }
 
 // AppConfig represents allowed values under the 'apps' key
@@ -83,32 +87,36 @@ func (r *RouteEntry) Domain() string {
 	return strings.SplitN(string(*r), ".", cFMaxRouteTokens)[1]
 }
 
-// LoadResourceConfig reads config.yaml and parses it into a ResourceConfig. If
-// dataSource is nil, it will attempt to read from `config.yaml` in the current
-// directory.
-func LoadResourceConfig(dataSource []byte) Config {
+// loadData reads a []byte and parses it into a Config.
+func loadData(dataSource []byte) (Config, error) {
 	if dataSource == nil {
-		log.Printf("Reading config from config.yaml...")
-		var err error
-		dataSource, err = os.ReadFile("config.yaml")
-		if err != nil {
-			log.Fatalf("Could not read config.yaml: %s", err)
-		}
+		return Config{}, errors.New("Cannot load nil config data")
 	}
 
-	// Expand env vars
+	// Support environent variables in the config file.
 	expandedString := os.ExpandEnv(string(dataSource))
 	dataSource = []byte(expandedString)
 
 	var yamlConfig YAMLConfig
-	if err := yaml.Unmarshal(dataSource, &yamlConfig); err != nil {
-		log.Fatalf("Error parsing config file: %s", err)
+	if err := yaml.UnmarshalStrict(dataSource, &yamlConfig); err != nil {
+		return Config{}, err
+	}
+
+	if yamlConfig.GlobalConfig.HTTPBindPort == 0 {
+		return Config{}, errors.New("port 0 is reserved and cannot be used")
+	}
+	if yamlConfig.GlobalConfig.RefreshInterval < minRefreshInterval {
+		return Config{}, errors.New("Refresh interval cannot be less than " + minRefreshInterval.String())
+	}
+	if _, err := url.ParseRequestURI(yamlConfig.GlobalConfig.CloudControllerURL); err != nil {
+		return Config{}, errors.New("cloud controller URL could not be parsed")
 	}
 
 	var conf Config
 	conf.Data = yamlConfig
 	conf.Apps = make(map[string]AppEntry)
 	conf.Spaces = make(map[string]SpaceEntry)
+
 	for _, app := range conf.Data.AppConfig.Apps {
 		conf.Apps[app.Name] = app
 	}
@@ -117,5 +125,15 @@ func LoadResourceConfig(dataSource []byte) Config {
 		conf.Spaces[space.Name] = space
 	}
 
-	return conf
+	return conf, nil
+}
+
+// Load reads the named file and returns a Config.
+func Load(filename string) (Config, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return Config{}, err
+	}
+
+	return loadData(data)
 }

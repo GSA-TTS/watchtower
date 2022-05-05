@@ -6,27 +6,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/18F/watchtower/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"gopkg.in/yaml.v2"
 )
 
 const namespace = "watchtower"
 
-// Configuration Flags
-var configPath = flag.String("config", "config.yaml", "Path to configuration file.")
-var validationInterval = flag.Int("interval", int(DetectionInterval.Seconds()), "The interval (in seconds) that Watchtower will run validation checks and update exported metrics.")
-var help = flag.Bool("help", false, "Print usage instructions.")
-
 // Global Settings
-var client *cfclient.Client
-var clientCreatedAt = time.Now()
-var clientAgeLimitHours = 8.0
-var configString = ""
-var bindPort = "8080"
+var bindPort uint16 = 8080
 
 var (
 	// Counters for failed/successful validation checks
@@ -102,11 +93,6 @@ var (
 	})
 )
 
-// configHandler shows the currently loaded config file
-func configHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, configString)
-}
-
 // healthHandler attempts to determine the health of Watchtower by checking whether the http client can
 // successfully hit the CloudController API, and whether metrics are successfully being served.
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +101,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	resp["message"] = "Healthy"
 
 	// Check responses for errors
-	watchtowerResp, watchtowerErr := http.Get("http://localhost:" + bindPort + "/metrics")
+	watchtowerResp, watchtowerErr := http.Get("http://localhost:" + fmt.Sprint(bindPort) + "/metrics")
 	if watchtowerErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		resp["message"] = "Failed scraping Watchtower /metrics endpoint. See logs for details."
@@ -145,17 +131,34 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	var help = flag.Bool("help", false, "Print usage instructions.")
+	var configPath = flag.String("config", "config.yaml", "Path to configuration file.")
 	flag.Parse()
+
 	if *help {
 		flag.PrintDefaults()
 		return
 	}
-	client = NewCFClient()
-	NewDetector(configPath, *validationInterval)
+
+	config, err := config.Load(*configPath)
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Setup '/config' endpoint
+	yamlBytes, err := yaml.Marshal(config.Data)
+	if err != nil {
+		log.Fatalf("Failed marshalling config to yaml for /config endpoint: %v", err)
+	}
+	http.HandleFunc("/config", func(w http.ResponseWriter, _ *http.Request) {
+		w.Write(yamlBytes)
+	})
+
+	NewDetector(&config)
 
 	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/config", configHandler)
 	http.HandleFunc("/health", healthHandler)
-	bindPort = ReadPortFromEnv()
-	log.Fatal(http.ListenAndServe(":"+bindPort, nil))
+	bindPort = config.Data.GlobalConfig.HTTPBindPort
+	log.Print("Listening on port: " + fmt.Sprint(bindPort))
+	log.Fatal(http.ListenAndServe(":"+fmt.Sprint(bindPort), nil))
 }

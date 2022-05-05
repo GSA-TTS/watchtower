@@ -2,45 +2,27 @@ package main
 
 import (
 	"log"
-	"os"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/18F/watchtower/config"
 )
-
-// DetectionInterval is the default, recommended scrape interval for Watchtower
-const DetectionInterval = time.Minute * time.Duration(5)
 
 // Detector is used to find drift between the deployed Cloud Foundry resources
 // and those in the provided config allow list.
 type Detector struct {
-	client   *cfclient.Client
-	cache    CFResourceCache
-	config   Config
-	interval int
+	cache  CFResourceCache
+	config config.Config
 }
 
 // NewDetector starts and returns a new default Detector
-func NewDetector(configFile *string, validationInterval int) Detector {
-	log.Printf("Config file path: %s", *configFile)
-	data, err := os.ReadFile(*configFile)
-	if err != nil {
-		log.Fatalf("Unable to read config file. %s", err)
-	}
-	resourceConfig := LoadResourceConfig(data)
-
-	// If secret values are ever added to config, they should be masked in configString.
-	configString = string(data)
-
-	resourceCache := NewCFResourceCache()
+func NewDetector(config *config.Config) Detector {
+	resourceCache := NewCFResourceCache(config.Data.GlobalConfig.CloudControllerURL)
 
 	detector := Detector{
-		client:   NewCFClient(),
-		cache:    resourceCache,
-		config:   resourceConfig,
-		interval: validationInterval,
+		cache:  resourceCache,
+		config: *config,
 	}
 
 	// Call .Validate() before returning the detector so that exported metrics aren't
@@ -54,9 +36,9 @@ func NewDetector(configFile *string, validationInterval int) Detector {
 
 // Start the Detector, calling .Validate every DetectionInterval
 func (detector *Detector) start() {
-	interval := time.Second * time.Duration(detector.interval)
+	interval := detector.config.Data.GlobalConfig.RefreshInterval
 	ticker := time.NewTicker(interval)
-	log.Printf("Starting Detector with refresh interval: %ds", int64(interval.Seconds()))
+	log.Printf("Starting Detector with refresh interval: %s", interval.String())
 	for range ticker.C {
 		detector.cache.Refresh()
 		detector.Validate()

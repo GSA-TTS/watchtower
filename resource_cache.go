@@ -4,11 +4,43 @@ import (
 	"errors"
 	"log"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/cloudfoundry-community/go-cfclient"
 )
+
+var client *cfclient.Client
+var clientCreatedAt = time.Now()
+var clientAgeLimitHours = 8.0
+var cloudControllerURL string
+
+// Get an environment variable value. If the key is empty or does not exist,
+// return fallback.
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok && value != "" {
+		return value
+	}
+	return fallback
+}
+
+// newCFClient creates and returns a cfclient.Client. Reads CF_USER, and
+// CF_PASS environment variables as configuration values.
+func newCFClient() *cfclient.Client {
+	c := &cfclient.Config{
+		ApiAddress: cloudControllerURL,
+		Username:   getEnv("CF_USER", ""),
+		Password:   getEnv("CF_PASS", ""),
+	}
+	client, err := cfclient.NewClient(c)
+	if err != nil {
+		log.Panicf("Could not create cfclient. Error: %s", err)
+	} else {
+		log.Println("Successfully created cfclient")
+	}
+	return client
+}
 
 // CFResourceCache will contain the most recently scraped resource information
 // about the Cloud Foundry environment being monitored. Various resource types
@@ -23,8 +55,11 @@ type CFResourceCache struct {
 }
 
 // NewCFResourceCache returns a new, populated CFResourceCache
-func NewCFResourceCache() CFResourceCache {
+func NewCFResourceCache(url string) CFResourceCache {
+	cloudControllerURL = url
+	log.Printf("url: %v", url)
 	var cache = CFResourceCache{}
+	client = newCFClient()
 	cache.Refresh()
 	return cache
 }
@@ -33,7 +68,7 @@ func NewCFResourceCache() CFResourceCache {
 func (cache *CFResourceCache) Refresh() {
 	// Ensure the client is still valid (refresh token expires periodically)
 	if time.Since(clientCreatedAt).Hours() > clientAgeLimitHours {
-		client = NewCFClient()
+		client = newCFClient()
 		clientCreatedAt = time.Now()
 		log.Println("Successfully refreshed CF HTTP Client")
 	}

@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/cloudfoundry-community/go-cfclient v0.0.0-20220405200807-800807a1b060
 	github.com/prometheus/client_golang v1.12.1
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -21,7 +21,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
-	golang.org/x/sys v0.0.0-20220502124256-b6088ccd6cba // indirect
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )
