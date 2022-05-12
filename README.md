@@ -46,7 +46,6 @@ page, or compile the go source yourself using `go build`.
 | Argument | Description |
 | --- | --- |
 | `-config` | Path to the configuration file |
-| `-interval` | The interval (in seconds) that Watchtower will run validation checks and update exported metrics |
 | `-help` | Print the Watchtower usage message. |
 
 ### Environment Variables
@@ -55,10 +54,8 @@ Cloud Foundry:
 
 | Environment variable name | Description |
 | --- | --- |
-| `CF_API` | The full URL of the Cloud Foundry API that Watchtower should interact with. Using the [CF CLI](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html), this value can be found with `cf api`. |
 | `CF_USER` | The username of the Cloud Foundry User account for Watchtower to authenticate with. |
 | `CF_PASS` | The password of the Cloud Foundry User account for Watchtower to authenticate with. |
-| `PORT` | The port for watchtower to listen on. Default is 8080. |
 
 ### Service Account and Permissions
 The user/pass provided to watchtower should be a service account with access to
@@ -79,6 +76,8 @@ Running watchtower behind a forward proxy is as simple as setting the
 Generic placeholder definitions:
 * `<boolean>`: a boolean that can take the values `true` or `false`
 * `<string>`: a regular string
+* `<int>`: an integer value
+* `<duration>`: a duration that can be parsed with go's [time.ParseDuration()](https://pkg.go.dev/time#ParseDuration)
 * `<secret>`: a regular string that is a secret, such as a password
 
 ### Environment Variable Expansion
@@ -86,8 +85,20 @@ Watchtower will replace ${var} or $var in the provided config according to the
 values of the current environment variables. References to undefined variables
 are replaced by the empty string.
 
-### Global
+### Watchtower Config
 ```yaml
+global:
+  # The port that Watchtower will bind to for serving requests.
+  port: <int> | default = 0
+
+  # The interval Watchtower will use to refresh its internal view of the cloud
+  # foundry environment as well as any exported metrics. This value cannot be
+  # less than 10s.
+  refresh_interval: <duration> | default = 5m
+
+  # The full URL of the Cloud Foundry Cloud Controller that Watchtower should
+  # interact with. Using the CF CLI, this value can be found with `cf api`.
+  cloud_controller_url: <string> | default = ""
 apps:
   # Whether to enable monitoring of CF Apps. Enabled=false will result in 
   # app-related metrics being the zero-value of the metric type.
