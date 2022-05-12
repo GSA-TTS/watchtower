@@ -8,7 +8,7 @@ import (
 const basicConfig = `---
 global:
   port: 8443
-  interval: 15s
+  refresh_interval: 15s
   cloud_controller_url: https://api.fr.cloud.gov
 apps:
   enabled: true
@@ -196,7 +196,7 @@ func TestConfigEnvVar(t *testing.T) {
 	confData := `---
 global:
   port: 8443
-  interval: 10s
+  refresh_interval: 10s
   cloud_controller_url: https://api.fr.cloud.gov
 apps:
   enabled: true
@@ -284,7 +284,7 @@ func TestGlobalPort(t *testing.T) {
 	// Custom 8080
 	confData := `---
 global:
-  interval: 10s
+  refresh_interval: 10s
   cloud_controller_url: https://api.fr.cloud.gov
   port: 8080`
 
@@ -301,7 +301,7 @@ global:
 	confData = `---
 global:
   cloud_controller_url: https://api.fr.cloud.gov
-  interval: 10s`
+  refresh_interval: 10s`
 
 	conf, err = loadData([]byte(confData))
 	if err == nil {
@@ -323,7 +323,7 @@ func TestGlobalInterval(t *testing.T) {
 global:
   port: 8443
   cloud_controller_url: https://api.fr.cloud.gov
-  interval: 2h`
+  refresh_interval: 2h`
 
 	conf, err := loadData([]byte(confData))
 	if err != nil {
@@ -360,7 +360,7 @@ func TestGlobalControllerURL(t *testing.T) {
 	confData := `---
 global:
   port: 8443
-  interval: 10s
+  refresh_interval: 10s
   cloud_controller_url: https://google.com`
 
 	conf = loadCustomConfig(t, []byte(confData))
@@ -373,7 +373,7 @@ global:
 	confData = `---
 global:
   port: 8443
-  interval: 10s`
+  refresh_interval: 10s`
 
 	conf, err := loadData([]byte(confData))
 	if err == nil {

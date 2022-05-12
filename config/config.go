@@ -33,7 +33,7 @@ type YAMLConfig struct {
 // GlobalConfig represents allowed values under the 'global' key
 type GlobalConfig struct {
 	HTTPBindPort       uint16        `yaml:"port"`
-	RefreshInterval    time.Duration `yaml:"interval"`
+	RefreshInterval    time.Duration `yaml:"refresh_interval"`
 	CloudControllerURL string        `yaml:"cloud_controller_url"`
 }
 
