@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -108,9 +109,27 @@ func loadData(dataSource []byte) (Config, error) {
 	if yamlConfig.GlobalConfig.RefreshInterval < minRefreshInterval {
 		return Config{}, errors.New("Refresh interval cannot be less than " + minRefreshInterval.String())
 	}
-	if _, err := url.ParseRequestURI(yamlConfig.GlobalConfig.CloudControllerURL); err != nil {
-		return Config{}, errors.New("cloud controller URL could not be parsed")
+
+	// Do some basic validation on the provided Cloud Controller URL
+	ccURL, err := url.ParseRequestURI(yamlConfig.GlobalConfig.CloudControllerURL)
+	if err != nil {
+		return Config{}, errors.New("provided cloud controller URL could not be parsed")
 	}
+
+	switch {
+	case !ccURL.IsAbs():
+		return Config{}, errors.New("provided cloud controller URL was not an absolute URL")
+	case ccURL.Scheme != "https":
+		return Config{}, errors.New("unsupported scheme in cloud controller URL")
+	case strings.Contains(ccURL.String(), ".."):
+		return Config{}, errors.New("suspected directory traversal in cloud controller URL")
+	case ccURL.Fragment != "":
+		return Config{}, errors.New("fragments unsupported in cloud controller URL")
+	case ccURL.RawQuery != "":
+		return Config{}, errors.New("queries unsupported in cloud controller URL")
+	}
+
+	yamlConfig.GlobalConfig.CloudControllerURL = ccURL.Scheme + "://" + ccURL.Host
 
 	var conf Config
 	conf.Data = yamlConfig
@@ -130,7 +149,8 @@ func loadData(dataSource []byte) (Config, error) {
 
 // Load reads the named file and returns a Config.
 func Load(filename string) (Config, error) {
-	data, err := os.ReadFile(filename)
+	configFileName := filepath.Clean(filename)
+	data, err := os.ReadFile(configFileName)
 	if err != nil {
 		return Config{}, err
 	}
