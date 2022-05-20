@@ -1,17 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
-	"fmt"
-	"log"
-	"net/http"
 
+	"github.com/18F/watchtower/api"
 	"github.com/18F/watchtower/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"gopkg.in/yaml.v2"
+	"go.uber.org/zap"
 )
 
 const namespace = "watchtower"
@@ -58,7 +54,7 @@ var (
 		Help:      "Number of times the config refresh for Routes has succeeded",
 	})
 
-	// Counters for unknown/missing/misconfigured resources
+	// Gauges for unknown/missing/misconfigured resources
 	totalUnknownApps = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Subsystem: "unknown",
@@ -93,46 +89,21 @@ var (
 	})
 )
 
-// healthHandler attempts to determine the health of Watchtower by checking whether the http client can
-// successfully hit the CloudController API, and whether metrics are successfully being served.
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	resp := make(map[string]string)
-	resp["message"] = "Healthy"
-
-	// Check responses for errors
-	watchtowerResp, watchtowerErr := http.Get("http://localhost:" + fmt.Sprint(bindPort) + "/metrics")
-	if watchtowerErr != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		resp["message"] = "Failed scraping Watchtower /metrics endpoint. See logs for details."
-		log.Printf("Error reading Watchtower metric data during health check: %v", watchtowerErr)
-	} else if _, clientErr := client.GetInfo(); clientErr != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		resp["message"] = "Error contacting the Cloud Controller API. See logs for details."
-		log.Printf("Error reading Watchtower metric data during health check: %v", clientErr)
-	}
-
-	// Clean up and write the response
-	if watchtowerErr == nil {
-		// There was no error in the call to /metrics, so the response body must be closed
-		err := watchtowerResp.Body.Close()
-		if err != nil {
-			log.Fatalf("Error closing response body. Err: %s", err)
-		}
-	}
-	jsonResp, err := json.Marshal(resp)
+func init() {
+	logger, err := zap.NewProduction()
+	logger.Named("main")
 	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+		panic(err)
 	}
-	_, err = w.Write(jsonResp)
-	if err != nil {
-		log.Fatalf("Error writing response. Err: %s", err)
-	}
+	zap.ReplaceGlobals(logger)
 }
 
 func main() {
-	var help = flag.Bool("help", false, "Print usage instructions.")
-	var configPath = flag.String("config", "config.yaml", "Path to configuration file.")
+	logger := zap.S()
+	defer zap.S().Sync()
+
+	help := flag.Bool("help", false, "Print usage instructions.")
+	configPath := flag.String("config", "config.yaml", "Path to configuration file.")
 	flag.Parse()
 
 	if *help {
@@ -142,23 +113,12 @@ func main() {
 
 	config, err := config.Load(*configPath)
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		logger.Fatalw("failed configuration loading",
+			"error", err.Error(),
+		)
 	}
-
-	// Setup '/config' endpoint
-	yamlBytes, err := yaml.Marshal(config.Data)
-	if err != nil {
-		log.Fatalf("Failed marshalling config to yaml for /config endpoint: %v", err)
-	}
-	http.HandleFunc("/config", func(w http.ResponseWriter, _ *http.Request) {
-		w.Write(yamlBytes)
-	})
 
 	NewDetector(&config)
 
-	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/health", healthHandler)
-	bindPort = config.Data.GlobalConfig.HTTPBindPort
-	log.Print("Listening on port: " + fmt.Sprint(bindPort))
-	log.Fatal(http.ListenAndServe(":"+fmt.Sprint(bindPort), nil))
+	api.Serve(&config)
 }
