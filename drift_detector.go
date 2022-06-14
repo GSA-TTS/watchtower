@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/18F/watchtower/config"
+	"go.uber.org/zap"
 )
 
 // Detector is used to find drift between the deployed Cloud Foundry resources
@@ -14,15 +16,28 @@ import (
 type Detector struct {
 	cache  CFResourceCache
 	config config.Config
+	logger *zap.SugaredLogger
 }
 
 // NewDetector starts and returns a new default Detector
-func NewDetector(config *config.Config) Detector {
-	resourceCache := NewCFResourceCache(config.Data.GlobalConfig.CloudControllerURL)
+func NewDetector(config *config.Config, logger *zap.SugaredLogger) (Detector, error) {
+	if config == nil {
+		return Detector{}, errors.New("detector cannot be created with nil config")
+	}
+	if logger == nil {
+		return Detector{}, errors.New("Detector cannot be created with nil logger")
+	}
+	logger = logger.Named("detector")
 
+	resourceCache, err := NewCFResourceCache(config.Data.GlobalConfig.CloudControllerURL, logger)
+	if err != nil {
+		logger.Error("drift detector failed to create resource cache", "error", err.Error())
+		return Detector{}, err
+	}
 	detector := Detector{
 		cache:  resourceCache,
 		config: *config,
+		logger: logger,
 	}
 
 	// Call .Validate() before returning the detector so that exported metrics aren't
@@ -31,14 +46,15 @@ func NewDetector(config *config.Config) Detector {
 	// zero after watchtower restarts.
 	detector.Validate()
 	go detector.start()
-	return detector
+	return detector, nil
 }
 
 // Start the Detector, calling .Validate every DetectionInterval
 func (detector *Detector) start() {
 	interval := detector.config.Data.GlobalConfig.RefreshInterval
 	ticker := time.NewTicker(interval)
-	log.Printf("Starting Detector with refresh interval: %s", interval.String())
+	detector.logger.Infow("starting detector", "refresh interval", interval.String())
+
 	for range ticker.C {
 		detector.cache.Refresh()
 		detector.Validate()
@@ -126,7 +142,7 @@ func (detector *Detector) validateAppRoutes(wg *sync.WaitGroup) {
 	var cache = &detector.cache
 
 	if !cache.isValid() {
-		log.Println("Invalid cache detected. Skipping routes check.")
+		detector.logger.Warn("invalid cache detected. skipping routes check.")
 		failedRouteChecks.Inc()
 		return
 	}
@@ -136,11 +152,11 @@ func (detector *Detector) validateAppRoutes(wg *sync.WaitGroup) {
 
 	if len(unknownRoutes) != 0 {
 		sort.Strings(unknownRoutes)
-		log.Printf("Unknown Routes Detected: %s", unknownRoutes)
+		detector.logger.Infow("unknown routes detected", "unknown routes", unknownRoutes)
 	}
 	if len(missingRoutes) != 0 {
 		sort.Strings(missingRoutes)
-		log.Printf("Missing Routes Detected: %s", missingRoutes)
+		detector.logger.Infow("missing routes detected", "missing routes", missingRoutes)
 	}
 	totalUnknownRoutes.Set(float64(len(unknownRoutes)))
 	totalMissingRoutes.Set(float64(len(missingRoutes)))
@@ -152,7 +168,7 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	if !detector.cache.Apps.Valid {
-		log.Println("Invalid app cache detected. Skipping check.")
+		detector.logger.Warn("invalid app cache detected. skipping check.")
 		failedAppChecks.Inc()
 		return
 	}
@@ -173,11 +189,11 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 
 	if len(unknownApps) != 0 {
 		sort.Strings(unknownApps)
-		log.Printf("Unknown Apps Detected: %s", unknownApps)
+		detector.logger.Infow("unknown apps detected", "unknown apps", unknownApps)
 	}
 	if len(missingApps) != 0 {
 		sort.Strings(missingApps)
-		log.Printf("Missing Apps Detected: %s", missingApps)
+		detector.logger.Infow("missing apps detected", "missing apps", missingApps)
 	}
 	totalUnknownApps.Set(float64(len(unknownApps)))
 	totalMissingApps.Set(float64(len(missingApps)))
@@ -191,7 +207,7 @@ func (detector *Detector) validateSpaces(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	if !detector.cache.Spaces.Valid {
-		log.Println("Invalid space cache detected. Skipping check.")
+		detector.logger.Warn("invalid space cache detected. skipping check.")
 		failedSpaceChecks.Inc()
 		return
 	}

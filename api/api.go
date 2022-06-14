@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -13,16 +14,7 @@ import (
 
 var bindPort uint16
 var cloudControllerInfoEndpoint = ""
-var logger zap.SugaredLogger
-
-func init() {
-	logger, err := zap.NewProduction()
-	logger.Named("main")
-	if err != nil {
-		panic(err)
-	}
-	zap.ReplaceGlobals(logger)
-}
+var logger *zap.SugaredLogger
 
 // healthHandler attempts to determine the health of Watchtower by checking whether the http client can
 // successfully hit the CloudController API, and whether metrics are successfully being served.
@@ -38,7 +30,6 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 			"error", err.Error(),
 		)
 	}
-	print("jsonResp: %s", jsonResp)
 	if _, err := w.Write(jsonResp); err != nil {
 		logger.Errorw("failed writing response to /health request",
 			"error", err.Error(),
@@ -72,13 +63,20 @@ func registerEndpoints(conf *config.Config) {
 
 // Serve registers the Watchtower endpoints to the http DefaultServeMux, begins
 // listening for incoming connections, and monitoring health of the app.
-func Serve(conf *config.Config) {
-	defer logger.Sync()
+func Serve(conf *config.Config, zapLogger *zap.SugaredLogger) error {
+	if zapLogger == nil {
+		return errors.New("cannot call api.Serve with nil logger")
+	}
+
+	logger = zapLogger.Named("api")
 	registerEndpoints(conf)
-	go monitorHealth()
+	go monitorHealth(logger)
 	logger.Infow("start listening for connections",
 		"address", "0.0.0.0"+":"+fmt.Sprint(bindPort),
 	)
+
 	err := http.ListenAndServe(":"+fmt.Sprint(bindPort), nil)
 	logger.Fatal(err)
+
+	return nil
 }

@@ -89,18 +89,13 @@ var (
 	})
 )
 
-func init() {
-	logger, err := zap.NewProduction()
-	logger.Named("main")
+func main() {
+	zaplogger, err := zap.NewProduction()
 	if err != nil {
 		panic(err)
 	}
-	zap.ReplaceGlobals(logger)
-}
-
-func main() {
-	logger := zap.S()
-	defer zap.S().Sync()
+	logger := zaplogger.Sugar().Named("main")
+	defer logger.Sync()
 
 	help := flag.Bool("help", false, "Print usage instructions.")
 	configPath := flag.String("config", "config.yaml", "Path to configuration file.")
@@ -113,12 +108,16 @@ func main() {
 
 	config, err := config.Load(*configPath)
 	if err != nil {
-		logger.Fatalw("failed configuration loading",
-			"error", err.Error(),
-		)
+		logger.Fatalw("failed configuration loading", "error", err.Error())
 	}
 
-	NewDetector(&config)
+	_, err = NewDetector(&config, logger)
+	if err != nil {
+		logger.Fatalw("failed creating drift detector", "error", err.Error())
+	}
 
-	api.Serve(&config)
+	err = api.Serve(&config, logger)
+	if err != nil {
+		logger.Fatalw("failed serving api", "error", err.Error())
+	}
 }

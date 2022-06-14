@@ -2,11 +2,12 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // healthStatus structs capture the current health of the Watchtower app
@@ -46,10 +47,10 @@ var healthyStatus = healthStatus{StatusCode: http.StatusOK, Message: "Healthy"}
 
 // checkEndpoint makes a GET request to the requested URL and automatically sets
 // watchtowerHealth should the request fail. Returns the request response.
-func getEndpointHealth(url string) healthStatus {
+func getEndpointHealth(url string, logger *zap.SugaredLogger) healthStatus {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Printf("failed GET to healcheck url: %s with error: %v", url, err)
+		logger.Warnw("failed get request to healcheck endpoint", "url", url, "error", err)
 		return healthStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    err.Error(),
@@ -59,13 +60,13 @@ func getEndpointHealth(url string) healthStatus {
 	if resp.StatusCode != http.StatusOK {
 		dump, err := httputil.DumpResponse(resp, true)
 		if err != nil {
-			log.Printf("Failure gathering details on failed health check request: %v", err)
+			logger.Warnw("failed gathering details on failed health check request", "error", err)
 			return healthStatus{
 				StatusCode: http.StatusInternalServerError,
 				Message:    "Unhealthy",
 			}
 		}
-		log.Printf("Health check failure: %v", dump)
+		logger.Warnw("health check failure", "response", dump)
 		return healthStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Unhealthy",
@@ -73,22 +74,22 @@ func getEndpointHealth(url string) healthStatus {
 	}
 
 	if err := resp.Body.Close(); err != nil {
-		log.Fatalf("failed closing response body: %v", err)
+		logger.Fatalw("failed closing response body", "error", err)
 	}
 
 	return healthyStatus
 }
 
 // monitorHealth can be run as a goroutine to periodically update watchtowerHealth
-func monitorHealth() {
+func monitorHealth(logger *zap.SugaredLogger) {
 	for range time.Tick(time.Second * 30) {
-		status := getEndpointHealth("http://localhost:" + fmt.Sprint(bindPort) + "/metrics")
+		status := getEndpointHealth("http://localhost:"+fmt.Sprint(bindPort)+"/metrics", logger)
 		if status != healthyStatus {
 			watchtowerHealth.Set(status)
 			continue
 		}
 
-		status = getEndpointHealth(cloudControllerInfoEndpoint)
+		status = getEndpointHealth(cloudControllerInfoEndpoint, logger)
 		watchtowerHealth.Set(status)
 	}
 }
