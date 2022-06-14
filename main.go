@@ -92,7 +92,12 @@ func main() {
 		panic(err)
 	}
 	logger := zaplogger.Sugar().Named("main")
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			print("logger failed to flish buffered log entries. some logs may have been lost.")
+		}
+	}()
 
 	help := flag.Bool("help", false, "Print usage instructions.")
 	configPath := flag.String("config", "config.yaml", "Path to configuration file.")
