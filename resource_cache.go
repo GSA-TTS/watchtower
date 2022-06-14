@@ -2,13 +2,45 @@ package main
 
 import (
 	"errors"
-	"log"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/cloudfoundry-community/go-cfclient"
+	"go.uber.org/zap"
 )
+
+var client *cfclient.Client
+var clientCreatedAt = time.Now()
+var clientAgeLimitHours = 8.0
+var cloudControllerURL string
+
+// Get an environment variable value. If the key is empty or does not exist,
+// return fallback.
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok && value != "" {
+		return value
+	}
+	return fallback
+}
+
+// newCFClient creates and returns a cfclient.Client. Reads CF_USER, and
+// CF_PASS environment variables as configuration values.
+func newCFClient(logger *zap.SugaredLogger) *cfclient.Client {
+	c := &cfclient.Config{
+		ApiAddress: cloudControllerURL,
+		Username:   getEnv("CF_USER", ""),
+		Password:   getEnv("CF_PASS", ""),
+	}
+	client, err := cfclient.NewClient(c)
+	if err != nil {
+		logger.Panicw("could not create cfclient", "error", err)
+	} else {
+		logger.Info("successfully created cfclient")
+	}
+	return client
+}
 
 // CFResourceCache will contain the most recently scraped resource information
 // about the Cloud Foundry environment being monitored. Various resource types
@@ -20,22 +52,38 @@ type CFResourceCache struct {
 	Domains       DomainCache
 	SharedDomains SharedDomainCache
 	Spaces        SpaceCache
+	logger        *zap.SugaredLogger
 }
 
 // NewCFResourceCache returns a new, populated CFResourceCache
-func NewCFResourceCache() CFResourceCache {
-	var cache = CFResourceCache{}
+func NewCFResourceCache(url string, logger *zap.SugaredLogger) (CFResourceCache, error) {
+	if logger == nil {
+		return CFResourceCache{}, errors.New("cannot create CFResourceCache with nil logger")
+	}
+	logger = logger.Named("cache")
+	cloudControllerURL = url
+	logger.Infow("creating resource cache", "url", url)
+	var cache = CFResourceCache{
+		Apps:          AppCache{logger: logger.Named("apps")},
+		Routes:        RouteCache{logger: logger.Named("routes")},
+		RouteMappings: RouteMappingCache{logger: logger.Named("route-mappings")},
+		Domains:       DomainCache{logger: logger.Named("domains")},
+		SharedDomains: SharedDomainCache{logger: logger.Named("shared-domains")},
+		Spaces:        SpaceCache{logger: logger.Named("spaces")},
+		logger:        logger,
+	}
+	client = newCFClient(logger)
 	cache.Refresh()
-	return cache
+	return cache, nil
 }
 
 // Refresh the current resource cache
 func (cache *CFResourceCache) Refresh() {
 	// Ensure the client is still valid (refresh token expires periodically)
 	if time.Since(clientCreatedAt).Hours() > clientAgeLimitHours {
-		client = NewCFClient()
+		client = newCFClient(cache.logger)
 		clientCreatedAt = time.Now()
-		log.Println("Successfully refreshed CF HTTP Client")
+		cache.logger.Info("successfully refreshed cf http client")
 	}
 	// Parallelize calls to refreshXCache using goroutines and a sync.WaitGroup
 	var waitgroup sync.WaitGroup
@@ -126,6 +174,7 @@ type AppCache struct {
 	apps    []cfclient.V3App
 	guidMap map[string]cfclient.V3App
 	nameMap map[string]cfclient.V3App
+	logger  *zap.SugaredLogger
 }
 
 func (cache *AppCache) refresh(wg *sync.WaitGroup) {
@@ -135,7 +184,7 @@ func (cache *AppCache) refresh(wg *sync.WaitGroup) {
 	resourceList, err := client.ListV3AppsByQuery(url.Values{})
 	if err != nil {
 		cache.Valid = false
-		log.Printf("Failed refreshing CF Apps: %s", err)
+		cache.logger.Infow("failed refreshing apps", "error", err)
 		return
 	}
 
@@ -160,6 +209,7 @@ type RouteCache struct {
 	Valid   bool
 	routes  []cfclient.Route
 	guidMap map[string]cfclient.Route
+	logger  *zap.SugaredLogger
 }
 
 func (cache *RouteCache) refresh(wg *sync.WaitGroup) {
@@ -169,7 +219,7 @@ func (cache *RouteCache) refresh(wg *sync.WaitGroup) {
 	resourceList, err := client.ListRoutes()
 	if err != nil {
 		cache.Valid = false
-		log.Printf("Failed refreshing CF Routes: %s", err)
+		cache.logger.Infow("failed refreshing routes", "error", err)
 		return
 	}
 
@@ -191,6 +241,7 @@ type RouteMappingCache struct {
 	Valid         bool
 	routeMappings []cfclient.RouteMapping
 	guidMap       map[string]cfclient.RouteMapping
+	logger        *zap.SugaredLogger
 }
 
 func (cache *RouteMappingCache) refresh(wg *sync.WaitGroup) {
@@ -200,7 +251,7 @@ func (cache *RouteMappingCache) refresh(wg *sync.WaitGroup) {
 	resourceListPtr, err := client.ListRouteMappings()
 	if err != nil {
 		cache.Valid = false
-		log.Printf("Failed refreshing CF Route Mappings: %s", err)
+		cache.logger.Infow("failed refreshing route mappings", "error", err)
 		return
 	}
 	var resourceList []cfclient.RouteMapping
@@ -227,6 +278,7 @@ type SharedDomainCache struct {
 	domains []cfclient.SharedDomain
 	guidMap map[string]cfclient.SharedDomain
 	nameMap map[string]cfclient.SharedDomain
+	logger  *zap.SugaredLogger
 }
 
 func (cache *SharedDomainCache) refresh(wg *sync.WaitGroup) {
@@ -236,7 +288,7 @@ func (cache *SharedDomainCache) refresh(wg *sync.WaitGroup) {
 	resourceList, err := client.ListSharedDomains()
 	if err != nil {
 		cache.Valid = false
-		log.Printf("Failed refreshing CF SharedDomains: %s", err)
+		cache.logger.Infow("failed refreshing shared domains", "error", err)
 		return
 	}
 
@@ -262,6 +314,7 @@ type DomainCache struct {
 	domains []cfclient.Domain
 	guidMap map[string]cfclient.Domain
 	nameMap map[string]cfclient.Domain
+	logger  *zap.SugaredLogger
 }
 
 func (cache *DomainCache) refresh(wg *sync.WaitGroup) {
@@ -271,7 +324,7 @@ func (cache *DomainCache) refresh(wg *sync.WaitGroup) {
 	resourceList, err := client.ListDomains()
 	if err != nil {
 		cache.Valid = false
-		log.Printf("Failed refreshing CF Domains: %s", err)
+		cache.logger.Infow("failed refreshing domains", "error", err)
 		return
 	}
 
@@ -297,6 +350,7 @@ type SpaceCache struct {
 	spaces  []cfclient.Space
 	guidMap map[string]cfclient.Space
 	nameMap map[string]cfclient.Space
+	logger  *zap.SugaredLogger
 }
 
 func (cache *SpaceCache) refresh(wg *sync.WaitGroup) {
@@ -306,7 +360,7 @@ func (cache *SpaceCache) refresh(wg *sync.WaitGroup) {
 	resourceList, err := client.ListSpacesByQuery(url.Values{})
 	if err != nil {
 		cache.Valid = false
-		log.Printf("Failed refreshing CF Spaces: %s", err)
+		cache.logger.Infow("failed refreshing spaces", "error", err)
 		return
 	}
 

@@ -1,10 +1,15 @@
-package main
+package config
 
 import (
 	"testing"
+	"time"
 )
 
 const basicConfig = `---
+global:
+  port: 8443
+  refresh_interval: 15s
+  cloud_controller_url: https://api.fr.cloud.gov
 apps:
   enabled: true
   resources:
@@ -30,18 +35,34 @@ spaces:
     - name: prod
       allow_ssh: false`
 
+func loadBasicConfig(t *testing.T) Config {
+	conf, err := loadData([]byte(basicConfig))
+	if err != nil {
+		t.Fatalf("Config failed to load: %v", err)
+	}
+	return conf
+}
+
+func loadCustomConfig(t *testing.T, confData []byte) Config {
+	conf, err := loadData(confData)
+	if err != nil {
+		t.Fatalf("Config failed to load: %v", err)
+	}
+	return conf
+}
+
 // TestAppsEnabled ensures that the 'enabled' option within the 'apps' block is set correctly.
 func TestAppsEnabled(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 
 	if conf.Data.AppConfig.Enabled != true {
 		t.Fatal("Apps enabled was incorrect")
 	}
 }
 
-// TestAppsEnabled ensures that the 'enabled' option within the 'apps' block is set correctly.
+// TestNumberOfApps ensures that the correct number of apps are found within the given config.
 func TestNumberOfApps(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 
 	apps := conf.Data.AppConfig.Apps
 	if len(apps) != 4 {
@@ -51,7 +72,7 @@ func TestNumberOfApps(t *testing.T) {
 
 // TestAppNames tests the app names that are found for the given config.
 func TestAppNames(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 
 	apps := conf.Data.AppConfig.Apps
 
@@ -71,7 +92,7 @@ func TestAppNames(t *testing.T) {
 
 // TestOptionalApp tests the 'optional' setting within the 'resources' block of 'apps'.
 func TestOptionalApp(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 
 	apps := conf.Data.AppConfig.Apps
 
@@ -91,7 +112,7 @@ func TestOptionalApp(t *testing.T) {
 
 // TestNumberOfAppRoutes tests that the correct number of routes are found for the given config.
 func TestNumberOfAppRoutes(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 
 	apps := conf.Data.AppConfig.Apps
 
@@ -112,7 +133,7 @@ func TestNumberOfAppRoutes(t *testing.T) {
 
 // TestAppRoutes tests that the correct route (hostname+domain) are found for the given config.
 func TestAppRoutes(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 
 	apps := conf.Data.AppConfig.Apps
 
@@ -132,7 +153,7 @@ func TestAppRoutes(t *testing.T) {
 
 // TestRouteHost tests that the RouteEntry.Host() method pulls the correct hostname from the app routes.
 func TestRouteHost(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 	apps := conf.Data.AppConfig.Apps
 	app3, app4 := apps[2], apps[3]
 
@@ -152,7 +173,7 @@ func TestRouteHost(t *testing.T) {
 
 // TestRouteDomain tests that the RouteEntry.Domain() method pulls the correct domain from the app routes.
 func TestRouteDomain(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 	apps := conf.Data.AppConfig.Apps
 	app3, app4 := apps[2], apps[3]
 
@@ -173,6 +194,10 @@ func TestRouteDomain(t *testing.T) {
 // TestConfigEnvVar tests that environment variables within the given config resolve correctly.
 func TestConfigEnvVar(t *testing.T) {
 	confData := `---
+global:
+  port: 8443
+  refresh_interval: 10s
+  cloud_controller_url: https://api.fr.cloud.gov
 apps:
   enabled: true
   resources:
@@ -184,7 +209,10 @@ apps:
 	t.Setenv("TEST_APP_2_NAME", "another-app")
 	t.Setenv("TEST_APP_2_OPTIONAL", "true")
 
-	conf := LoadResourceConfig([]byte(confData))
+	conf, err := loadData([]byte(confData))
+	if err != nil {
+		t.Fatalf("Config failed to load: %v", err)
+	}
 
 	apps := conf.Data.AppConfig.Apps
 	if len(apps) != 2 {
@@ -206,7 +234,7 @@ apps:
 
 // TestSpaceNames tests that the correct space names are found with the given config.
 func TestSpaceNames(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 
 	spaces := conf.Data.SpaceConfig.Spaces
 	if len(spaces) != 3 {
@@ -226,7 +254,7 @@ func TestSpaceNames(t *testing.T) {
 
 // TestSpaceSSH tests that the correct values for allow_ssh are found for the given config.
 func TestSpaceSSH(t *testing.T) {
-	conf := LoadResourceConfig([]byte(basicConfig))
+	conf := loadBasicConfig(t)
 
 	spaces := conf.Data.SpaceConfig.Spaces
 	if len(spaces) != 3 {
@@ -241,5 +269,129 @@ func TestSpaceSSH(t *testing.T) {
 	}
 	if space2, expected := spaces[2], false; space2.AllowSSH != expected {
 		t.Fatalf("Space %s allowssh incorrect", space2.Name)
+	}
+}
+
+// TestGlobalPort tests that the value of 'port' is set correctly within 'global'
+func TestGlobalPort(t *testing.T) {
+	// Default config
+	conf := loadBasicConfig(t)
+	port := conf.Data.GlobalConfig.HTTPBindPort
+	if port != 8443 {
+		t.Fatalf("Port was not read correctly from config. Found: %v", port)
+	}
+
+	// Custom 8080
+	confData := `---
+global:
+  refresh_interval: 10s
+  cloud_controller_url: https://api.fr.cloud.gov
+  port: 8080`
+
+	conf, err := loadData([]byte(confData))
+	if err != nil {
+		t.Fatalf("Config failed to load: %v", err)
+	}
+	port = conf.Data.GlobalConfig.HTTPBindPort
+	if port != 8080 {
+		t.Fatalf("Port was not read correctly from config. Found: %v", port)
+	}
+
+	// No value specified
+	confData = `---
+global:
+  cloud_controller_url: https://api.fr.cloud.gov
+  refresh_interval: 10s`
+
+	conf, err = loadData([]byte(confData))
+	if err == nil {
+		t.Fatalf("Zero-value for port did not result in error.")
+	}
+}
+
+// TestGlobalInterval tests that the value of 'interval' is set correctly within 'global'
+func TestGlobalInterval(t *testing.T) {
+	// Default config
+	conf := loadBasicConfig(t)
+	interval := conf.Data.GlobalConfig.RefreshInterval
+	if interval != time.Second*15 {
+		t.Fatalf("Interval was not read correctly from config. Found: %v", interval)
+	}
+
+	// Custom 2h interval
+	confData := `---
+global:
+  port: 8443
+  cloud_controller_url: https://api.fr.cloud.gov
+  refresh_interval: 2h`
+
+	conf, err := loadData([]byte(confData))
+	if err != nil {
+		t.Fatalf("Config failed to load: %v", err)
+	}
+
+	interval = conf.Data.GlobalConfig.RefreshInterval
+	if interval != time.Hour*2 {
+		t.Fatalf("Interval was not read correctly from config. Found: %v", interval)
+	}
+
+	// No value specified
+	confData = `---
+global:
+	cloud_controller_url: https://api.fr.cloud.gov
+  port: 8443`
+
+	conf, err = loadData([]byte(confData))
+	if err == nil {
+		t.Fatalf("Zero-value for interval did not result in error.")
+	}
+}
+
+// TestGlobalInterval tests that the value of 'interval' is set correctly within 'global'
+func TestGlobalControllerURL(t *testing.T) {
+	// Default config
+	conf := loadBasicConfig(t)
+	ccURL := conf.Data.GlobalConfig.CloudControllerURL
+	if ccURL != "https://api.fr.cloud.gov" {
+		t.Fatalf("ccURL was not read correctly from config. Found: %v", ccURL)
+	}
+
+	// Custom 2h ccURL
+	confData := `---
+global:
+  port: 8443
+  refresh_interval: 10s
+  cloud_controller_url: https://google.com`
+
+	conf = loadCustomConfig(t, []byte(confData))
+	ccURL = conf.Data.GlobalConfig.CloudControllerURL
+	if ccURL != "https://google.com" {
+		t.Fatalf("ccURL was not read correctly from config. Found: %v", ccURL)
+	}
+
+	// No value specified
+	confData = `---
+global:
+  port: 8443
+  refresh_interval: 10s`
+
+	conf, err := loadData([]byte(confData))
+	if err == nil {
+		t.Fatal("empty cloud controller url did not result in error")
+	}
+}
+
+// TestBadConfig tests that a file that is not a valid watchtower config will not be loaded.
+func TestBadConfig(t *testing.T) {
+	if _, err := loadData([]byte("This is not a config")); err == nil {
+		t.Fatal("Config loaded invalid data without erroring")
+	}
+
+	if _, err := loadData([]byte("global: \n  wrong_key: asdf")); err == nil {
+		t.Fatal("Config loaded an invalid key without erroring")
+	}
+
+	if _, err := loadData([]byte("apps: \n  enabled: not_a_bool")); err == nil {
+		t.Fatal("Config loaded an invalid datatype without erroring")
 	}
 }
