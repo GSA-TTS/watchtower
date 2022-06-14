@@ -3,8 +3,9 @@ module github.com/18F/watchtower
 go 1.18
 
 require (
-	github.com/cloudfoundry-community/go-cfclient v0.0.0-20220405200807-800807a1b060
-	github.com/prometheus/client_golang v1.12.1
+	github.com/cloudfoundry-community/go-cfclient v0.0.0-20220601192014-596c068bcda2
+	github.com/prometheus/client_golang v1.12.2
+	go.uber.org/zap v1.21.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -21,10 +22,9 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
-	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
-	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
+	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
+	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb // indirect
+	golang.org/x/sys v0.0.0-20220614162138-6c1b26c55098 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )
