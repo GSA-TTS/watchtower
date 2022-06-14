@@ -12,9 +12,6 @@ import (
 
 const namespace = "watchtower"
 
-// Global Settings
-var bindPort uint16 = 8080
-
 var (
 	// Counters for failed/successful validation checks
 	failedAppChecks = promauto.NewCounter(prometheus.CounterOpts{
