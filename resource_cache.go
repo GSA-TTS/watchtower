@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,10 +36,14 @@ func newCFClient(logger *zap.SugaredLogger) *cfclient.Client {
 	}
 	client, err := cfclient.NewClient(c)
 	if err != nil {
-		logger.Panicw("could not create cfclient", "error", err)
-	} else {
-		logger.Info("successfully created cfclient")
+		// Bad/No credentials
+		if strings.HasPrefix(err.Error(), "Error getting token: oauth2: cannot fetch token: 401 Unauthorized") {
+			logger.Fatalw("could not create cfclient", "error", "credentials were not valid")
+		}
+		logger.Fatalw("could not create cfclient", "error", err)
 	}
+
+	logger.Info("successfully created cfclient")
 	return client
 }
 
