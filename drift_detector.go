@@ -67,6 +67,7 @@ func (detector *Detector) enabledValidationFunctions() []func(*sync.WaitGroup) {
 	if detector.config.Data.AppConfig.Enabled {
 		validationFunctions = append(validationFunctions, detector.validateApps)
 		validationFunctions = append(validationFunctions, detector.validateAppRoutes)
+		validationFunctions = append(validationFunctions, detector.validateAppSSH)
 	}
 
 	if detector.config.Data.SpaceConfig.Enabled {
@@ -198,6 +199,32 @@ func (detector *Detector) validateApps(wg *sync.WaitGroup) {
 	totalUnknownApps.Set(float64(len(unknownApps)))
 	totalMissingApps.Set(float64(len(missingApps)))
 	successfulAppChecks.Inc()
+}
+
+func (detector *Detector) validateAppSSH(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	var appSSHViolations []string
+
+	if !detector.cache.Apps.Valid {
+		detector.logger.Warn("invalid app cache detected. skipping ssh check.")
+		failedAppSSHChecks.Inc()
+		return
+	}
+
+	for name, expectedApp := range detector.config.Apps {
+		// only mark violations if the app was found to be deployed AND "should ssh be disabled?" == "was ssh enabled?"
+		if enabled, ok := detector.cache.Apps.sshMap[name]; ok && expectedApp.SSHDisabled == enabled {
+			appSSHViolations = append(appSSHViolations, name)
+		}
+	}
+
+	if len(appSSHViolations) != 0 {
+		sort.Strings(appSSHViolations)
+		detector.logger.Infow("misconfigured app ssh detected", "apps", appSSHViolations)
+	}
+	totalAppSSHViolations.Set(float64(len(appSSHViolations)))
+	successfulAppSSHChecks.Inc()
 }
 
 // validateSpaces verifies spaces that Watchtower has read access to against
