@@ -14,7 +14,7 @@ fi
 
 version="$1"
 
-package="github.com/18f/watchtower"
+package="github.com/18F/watchtower"
 package_split=(${package//\// })
 package_name=${package_split[-1]}
 
