@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,10 +36,14 @@ func newCFClient(logger *zap.SugaredLogger) *cfclient.Client {
 	}
 	client, err := cfclient.NewClient(c)
 	if err != nil {
-		logger.Panicw("could not create cfclient", "error", err)
-	} else {
-		logger.Info("successfully created cfclient")
+		// Bad/No credentials
+		if strings.HasPrefix(err.Error(), "Error getting token: oauth2: cannot fetch token: 401 Unauthorized") {
+			logger.Fatalw("could not create cfclient", "error", "credentials were not valid")
+		}
+		logger.Fatalw("could not create cfclient", "error", err)
 	}
+
+	logger.Info("successfully created cfclient")
 	return client
 }
 
@@ -174,6 +179,7 @@ type AppCache struct {
 	apps    []cfclient.V3App
 	guidMap map[string]cfclient.V3App
 	nameMap map[string]cfclient.V3App
+	sshMap  map[string]bool
 	logger  *zap.SugaredLogger
 }
 
@@ -188,18 +194,30 @@ func (cache *AppCache) refresh(wg *sync.WaitGroup) {
 		return
 	}
 
+	v2ResourceList, err := client.ListApps()
+	if err != nil {
+		cache.Valid = false
+		cache.logger.Infow("failed refreshing app ssh info", "error", err)
+		return
+	}
+
 	// Convert the app data to a map so that lookups can be performed without iterating over the data every time
 	guidMap := make(map[string]cfclient.V3App)
 	nameMap := make(map[string]cfclient.V3App)
+	sshMap := make(map[string]bool)
 
 	for _, elem := range resourceList {
 		nameMap[elem.Name] = elem
 		guidMap[elem.GUID] = elem
 	}
 
+	for _, elem := range v2ResourceList {
+		sshMap[elem.Name] = elem.EnableSSH
+	}
 	cache.apps = resourceList
 	cache.guidMap = guidMap
 	cache.nameMap = nameMap
+	cache.sshMap = sshMap
 	cache.Valid = true
 }
 

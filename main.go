@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/18F/watchtower/api"
 	"github.com/18F/watchtower/config"
@@ -11,9 +12,6 @@ import (
 )
 
 const namespace = "watchtower"
-
-// Global Settings
-var bindPort uint16 = 8080
 
 var (
 	// Counters for failed/successful validation checks
@@ -53,6 +51,18 @@ var (
 		Name:      "success_total",
 		Help:      "Number of times the config refresh for Routes has succeeded",
 	})
+	failedAppSSHChecks = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: "app_ssh_checks",
+		Name:      "failed_total",
+		Help:      "Number of times the config refresh for Routes has failed for any reason",
+	})
+	successfulAppSSHChecks = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: "app_ssh_checks",
+		Name:      "success_total",
+		Help:      "Number of times the config refresh for Routes has succeeded",
+	})
 
 	// Gauges for unknown/missing/misconfigured resources
 	totalUnknownApps = promauto.NewGauge(prometheus.GaugeOpts{
@@ -68,13 +78,6 @@ var (
 		Help:      "Number of Apps in the provided config file that are not deployed",
 	})
 
-	totalSpaceSSHViolations = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: namespace,
-		Subsystem: "ssh",
-		Name:      "space_misconfiguration_total",
-		Help:      "Number of Spaces that have misconfigured SSH access settings",
-	})
-
 	totalUnknownRoutes = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Subsystem: "unknown",
@@ -87,6 +90,19 @@ var (
 		Name:      "app_routes_total",
 		Help:      "Number of Routes in the provided config file that are not deployed",
 	})
+
+	totalSpaceSSHViolations = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: "ssh",
+		Name:      "space_misconfiguration_total",
+		Help:      "Number of Spaces that have misconfigured SSH access settings",
+	})
+	totalAppSSHViolations = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: "ssh",
+		Name:      "app_misconfiguration_total",
+		Help:      "Number of Apps that have misconfigured SSH access settings",
+	})
 )
 
 func main() {
@@ -95,7 +111,13 @@ func main() {
 		panic(err)
 	}
 	logger := zaplogger.Sugar().Named("main")
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			println("logger failed to flush buffered log entries. some logs may have been lost.")
+			fmt.Printf("%s", err)
+		}
+	}()
 
 	help := flag.Bool("help", false, "Print usage instructions.")
 	configPath := flag.String("config", "config.yaml", "Path to configuration file.")

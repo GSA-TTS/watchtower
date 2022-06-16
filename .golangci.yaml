@@ -32,3 +32,10 @@ linters-settings:
 
   gosimple:  # Enabled by default
     go: "1.18"
+
+  gosec:
+    excludes:
+      # Potential HTTP request made with variable url. The URL of the cloud controller API
+      # is indeed variable by design. The URL must be given to watchtower, where it will
+      # proceed to make requests to determine the state of the environment.
+      - G107

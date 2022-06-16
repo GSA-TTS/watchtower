@@ -82,7 +82,9 @@ func getEndpointHealth(url string, logger *zap.SugaredLogger) healthStatus {
 
 // monitorHealth can be run as a goroutine to periodically update watchtowerHealth
 func monitorHealth(logger *zap.SugaredLogger) {
-	for range time.Tick(time.Second * 30) {
+	const healthCheckInterval = time.Second * 30
+
+	for range time.Tick(healthCheckInterval) {
 		status := getEndpointHealth("http://localhost:"+fmt.Sprint(bindPort)+"/metrics", logger)
 		if status != healthyStatus {
 			watchtowerHealth.Set(status)
