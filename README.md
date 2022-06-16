@@ -16,7 +16,7 @@ supposed to, it will communicate that to the authorities (a Prometheus server).
 ## Features
 * Detect unknown resources deployed to Cloud Foundry
 * Detect missing resources *not* deployed to Cloud Foundry, but should be
-* Detect SSH access misconfigurations
+* Detect SSH access misconfigurations for apps and spaces
 
 ### Supported Resource Types
 * Apps
@@ -130,6 +130,10 @@ name: <string>
 # marked as optional will never be marked as missing or unknown.
 [optional: <bool> | default = false]
 
+# Whether ssh should be allowed to the app or not. The default (false) expects
+# that ssh is allowed to the app instance.
+[ssh_disabled: <bool> | default = false]
+
 # Watchtower considers routes to be a part of an apps definition. The routes
 # section can be omitted, and will be interpreted as "app should have no routes"
 routes:
@@ -159,12 +163,17 @@ The following table includes all application-specific prometheus metrics that ar
 
 | Metric | Type | Description |
 | --- | --- | --- |
-| `watchtower_app_checks_failed_total` | Counter | Number of times the config check for V3Apps has failed for any reason |
-| `watchtower_app_checks_success_total` | Counter | Number of times the config check for V3Apps has succeeded |
-| `watchtower_space_checks_failed_total` | Counter | Number of times the config check for Spaces has failed for any reason |
-| `watchtower_space_checks_success_total` | Counter | Number of times the config check for Spaces has succeeded |
-| `watchtower_unknown_apps_total` | Gauge | Number of Apps deployed that are not in the allowed config file |
-| `watchtower_missing_apps_total` | Gauge | Number of Apps in the allowed config file that are not deployed to Cloud Foundry |
-| `watchtower_ssh_space_misconfiguration_total` | Gauge | Number of spaces visible to Watchtower with SSH access that differs from the value in the config |
-| `watchtower_unknown_app_route_total` | Gauge | Number of App Routes visible to Watchtower that differ from the values in the config |
-| `watchtower_missing_app_route_total` | Gauge | Number of App Routes in the allowed config file that are not deployed to Cloud Foundry |
+| `watchtower_unknown_apps_total` Number of Apps deployed that are not in the allowed config file (config.yaml)",
+| `watchtower_missing_apps_total` Number of Apps in the provided config file that are not deployed
+| `watchtower_unknown_app_routes_total` Number of Routes deployed that are not in the allowed config file (config.yaml)
+| `watchtower_missing_app_routes_total` Number of Routes in the provided config file that are not deployed
+| `watchtower_ssh_space_misconfiguration_total` Number of Spaces that have misconfigured SSH access settings
+| `watchtower_ssh_app_misconfiguration_total` Number of Apps that have misconfigured SSH access settings
+| `watchtower_app_checks_failed_total` Number of times the config refresh for V3Apps has failed for any reason
+| `watchtower_app_checks_success_total` Number of times the config refresh for V3Apps has succeeded
+| `watchtower_space_checks_failed_total` Number of times the config check for Spaces has failed for any reason
+| `watchtower_space_checks_success_total` Number of times the config check for Spaces has succeeded
+| `watchtower_route_checks_failed_total` Number of times the config refresh for Routes has failed for any reason
+| `watchtower_route_checks_success_total` Number of times the config refresh for Routes has succeeded
+| `watchtower_app_ssh_checks_failed_total` Number of times the config refresh for Routes has failed for any reason
+| `watchtower_app_ssh_checks_success_total` Number of times the config refresh for Routes has succeeded
