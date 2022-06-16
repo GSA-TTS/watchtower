@@ -46,9 +46,10 @@ type AppConfig struct {
 
 // AppEntry represents allowed values under the 'apps:resources' key
 type AppEntry struct {
-	Name     string       `yaml:"name"`
-	Optional bool         `yaml:"optional"`
-	Routes   []RouteEntry `yaml:"routes"`
+	Name        string       `yaml:"name"`
+	Optional    bool         `yaml:"optional"`
+	Routes      []RouteEntry `yaml:"routes"`
+	SSHDisabled bool         `yaml:"ssh_disabled"`
 }
 
 // ContainsRoute returns true if the AppEntry contains the specified route, false otherwise
