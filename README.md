@@ -72,6 +72,12 @@ in the config file provided to Watchtower to avoid false positives due to
 Running watchtower behind a forward proxy is as simple as setting the
 `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables.
 
+### Deploying as a cloud.gov app
+
+To deploy watchtower as a cloud.gov app using the [example manifest.yml file](manifest.yml), run:
+
+`cf push --var cf_user=<SPACE_AUDITOR_USER> --var cf_pass=<SPACE_AUDITOR_PASSWORD> --var watchtower_app_name=<WATCHTOWER_APP_NAME>`
+
 ## Watchtower Config
 Generic placeholder definitions:
 * `<boolean>`: a boolean that can take the values `true` or `false`
@@ -100,7 +106,7 @@ global:
   # interact with. Using the CF CLI, this value can be found with `cf api`.
   cloud_controller_url: <string> | default = ""
 apps:
-  # Whether to enable monitoring of CF Apps. Enabled=false will result in 
+  # Whether to enable monitoring of CF Apps. Enabled=false will result in
   # app-related metrics being the zero-value of the metric type.
   [ enabled: <boolean> | default = false ]
 
@@ -109,7 +115,7 @@ apps:
     [ - <cf_app_config> ... ]
 
 spaces:
-  # Whether to enable monitoring of CF Spaces. Enabled=false will result in 
+  # Whether to enable monitoring of CF Spaces. Enabled=false will result in
   # space-related metrics being the zero-value of the metric type.
   [ enabled: <boolean> | default = false ]
 
@@ -117,7 +123,7 @@ spaces:
   # access to all the spaces listed in the config, watchtower will list all
   # spaces it has access to and monitor any spaces with names matching config
   # entries found here. E.g. listing dev, test, and prod spaces here, but only
-  # giving Watchtower auditor permissions on the dev space would result in 
+  # giving Watchtower auditor permissions on the dev space would result in
   # monitoring only the dev space.
   resources:
     [ - <cf_space_config> ... ]

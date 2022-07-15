@@ -1,5 +1,9 @@
 # Example Config to demonstrate configuration options
 ---
+global:
+  port: ${PORT}
+  refresh_interval: 5m
+  cloud_controller_url: ${CLOUD_CONTROLLER_URL}
 apps:
   enabled: true
   resources:

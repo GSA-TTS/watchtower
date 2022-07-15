@@ -1,0 +1,11 @@
+---
+applications:
+- name: ((watchtower_app_name))
+  instances: 1
+  memory: 64m
+  buildpacks:
+    - go_buildpack
+  env:
+    CF_USER: ((cf_user))
+    CF_PASS: ((cf_pass))
+    CLOUD_CONTROLLER_URL: "https://api.fr.cloud.gov"
