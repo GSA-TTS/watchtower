@@ -2,7 +2,7 @@
 ---
 global:
   port: ${PORT}
-  refresh_interval: ${REFRESH_INTERVAL}
+  refresh_interval: 5m
   cloud_controller_url: ${CLOUD_CONTROLLER_URL}
 apps:
   enabled: true

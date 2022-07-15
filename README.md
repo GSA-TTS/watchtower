@@ -74,7 +74,7 @@ Running watchtower behind a forward proxy is as simple as setting the
 
 ### Deploying as a cloud.gov app
 
-To deploy watchtower as a cloud.gov app, run:
+To deploy watchtower as a cloud.gov app using the [example manifest.yml file](manifest.yml), run:
 
 `cf push --var cf_user=<SPACE_AUDITOR_USER> --var cf_pass=<SPACE_AUDITOR_PASSWORD> --var watchtower_app_name=<WATCHTOWER_APP_NAME>`
 
