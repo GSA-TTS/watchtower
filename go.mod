@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/cloudfoundry-community/go-cfclient v0.0.0-20220601192014-596c068bcda2
 	github.com/prometheus/client_golang v1.12.2
-	go.uber.org/zap v1.21.0
+	go.uber.org/zap v1.24.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
