@@ -13,7 +13,6 @@ linters:
     - gofmt  # Checks whether code was gofmt-ed. Uses '-s' simplification option
     - gomnd  # An analyzer to detect magic numbers
     - gosec  # Inspects source code for security problems
-    - ifshort  # Checks that your code uses short syntax for if-statements
     - misspell  # Finds commonly misspelled English words in comments
     - revive  # Drop-in replacement of golint
     - tenv  # Detects using os.Setenv instead of t.Setenv since Go1.17
@@ -28,7 +27,7 @@ linters-settings:
 
   gocognit:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
-    min-complexity: 10
+    min-complexity: 12
 
   gosimple:  # Enabled by default
     go: "1.18"

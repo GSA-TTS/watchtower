@@ -98,11 +98,14 @@ func (detector *Detector) Validate() {
 // <app_name>:<app_hostname>.<app_domain>
 func (detector *Detector) getMissingRoutes() []string {
 	var missingRoutes []string
-	for _, app := range detector.config.Apps {
-		for _, route := range app.Routes {
-			_, ok := detector.cache.findRouteByURL(route.Host(), route.Domain())
-			if !ok {
-				missingRoutes = append(missingRoutes, app.Name+":"+route.Host()+"."+route.Domain())
+	for name, app := range detector.config.Apps {
+		_, appExists := detector.cache.Apps.nameMap[name]
+		if (app.Optional && appExists) || !app.Optional {
+			for _, route := range app.Routes {
+				_, ok := detector.cache.findRouteByURL(route.Host(), route.Domain())
+				if !ok {
+					missingRoutes = append(missingRoutes, app.Name+":"+route.Host()+"."+route.Domain())
+				}
 			}
 		}
 	}

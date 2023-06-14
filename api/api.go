@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/18F/watchtower/config"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -18,7 +19,7 @@ var logger *zap.SugaredLogger
 
 // healthHandler attempts to determine the health of Watchtower by checking whether the http client can
 // successfully hit the CloudController API, and whether metrics are successfully being served.
-func healthHandler(w http.ResponseWriter, r *http.Request) {
+func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	currentHealth := watchtowerHealth.Get()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -75,7 +76,14 @@ func Serve(conf *config.Config, zapLogger *zap.SugaredLogger) error {
 		"address", "0.0.0.0"+":"+fmt.Sprint(bindPort),
 	)
 
-	err := http.ListenAndServe(":"+fmt.Sprint(bindPort), nil)
+	const timeoutSeconds = 3
+
+	server := &http.Server{
+		Addr:              ":" + fmt.Sprint(bindPort),
+		ReadHeaderTimeout: timeoutSeconds * time.Second,
+	}
+
+	err := server.ListenAndServe()
 	logger.Fatal(err)
 
 	return nil
