@@ -99,7 +99,7 @@ func (detector *Detector) Validate() {
 func (detector *Detector) getMissingRoutes() []string {
 	var missingRoutes []string
 	for name, app := range detector.config.Apps {
-		_, appExists := detector.cache.Apps.nameMap[name];
+		_, appExists := detector.cache.Apps.nameMap[name]
 		if (app.Optional && appExists) || !app.Optional {
 			for _, route := range app.Routes {
 				_, ok := detector.cache.findRouteByURL(route.Host(), route.Domain())
