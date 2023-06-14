@@ -78,10 +78,10 @@ func Serve(conf *config.Config, zapLogger *zap.SugaredLogger) error {
 
 	const timeoutSeconds = 3
 
-    server := &http.Server{
-        Addr:              ":"+fmt.Sprint(bindPort),
-        ReadHeaderTimeout: timeoutSeconds * time.Second,
-    }
+	server := &http.Server{
+		Addr:              ":" + fmt.Sprint(bindPort),
+		ReadHeaderTimeout: timeoutSeconds * time.Second,
+	}
 
 	err := server.ListenAndServe()
 	logger.Fatal(err)
