@@ -96,7 +96,6 @@ func (detector *Detector) Validate() {
 
 // getMissingRoutes will return a slice of strings representing missing routes in the form
 // <app_name>:<app_hostname>.<app_domain>
-//nolint:gocognit
 func (detector *Detector) getMissingRoutes() []string {
 	var missingRoutes []string
 	for name, app := range detector.config.Apps {
